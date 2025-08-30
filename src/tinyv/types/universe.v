@@ -86,6 +86,10 @@ const void_    = Void(0)
 const nil_     = Nil(0)
 const none_    = None(0)
 
+// Special types for SSA and type system
+pub const error_type_   = Primitive{ props: .untyped }
+pub const unknown_type_ = Primitive{ props: .untyped }
+
 const byteptr_ = Alias{
 	name: 'byteptr'
 	base_type: Pointer{
