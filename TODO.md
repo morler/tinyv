@@ -71,8 +71,8 @@
 
 #### 2.2 代码生成
 - [x] **实现 SSA 指令到汇编指令的映射** ✅ Basic mapping implemented for core SSA instructions (BinaryOp, UnaryOp, Load, Store, Alloca, Call)
-- [ ] 实现函数调用约定
-- [ ] 实现栈帧管理
+- [x] **实现函数调用约定** ✅ System V x64 ABI implemented with argument passing in registers (rdi, rsi, rdx, rcx, r8, r9) and stack, 16-byte stack alignment
+- [x] **实现栈帧管理** ✅ Enhanced stack frame management with callee-saved register preservation (rbx, r12-r15), 16-byte alignment, and local variable allocation
 - [ ] 添加调试信息生成
 
 #### 2.3 链接和输出
@@ -233,7 +233,7 @@
 Register allocation analysis framework implementation completed with live range computation and interference graph construction using Chaitin-Briggs algorithm.
 - [x] **Phase 2 COMPLETE**: Register allocation analysis framework implemented in src/tinyv/codegen/regalloc/algorithms.v
 
-**下一步行动**: Complete remaining function calling conventions and stack frame management. Evaluate beta milestone readiness with Alpha already achieved.
+**下一步行动**: Add debug information generation system (DWARF format)
 
 ### 里程碑定义
 - [x] **Alpha**: SSA IR 和基本代码生成完成 ✅ Basic instruction selection implemented - MILESTONE ACHIEVED

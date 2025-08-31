@@ -64,6 +64,8 @@ pub struct InstructionSelector {
 pub mut:
 		register_map map[string]regalloc.PhysicalRegister
 		code []X64Code
+		stack_frame_size int // Size of current stack frame
+		local_var_count int  // Number of local variables
 }
 
 // Constructor
@@ -71,6 +73,8 @@ pub fn new_instruction_selector(reg_assignments map[string]regalloc.PhysicalRegi
 	return InstructionSelector{
 		register_map: reg_assignments
 		code: []X64Code{}
+		stack_frame_size: 0
+		local_var_count: 0
 	}
 }
 
@@ -183,11 +187,11 @@ pub fn (mut is InstructionSelector) select_binary_op(inst ssa.BinaryOp) {
 	}
 }
 
-pub fn (mut is InstructionSelector) select_unary_op(inst ssa.UnaryOp) {
+public fn (mut is InstructionSelector) select_unary_op(inst ssa.UnaryOp) {
 	operand_reg := is.get_operand_register(inst.operand)
 	result_reg := is.allocate_result_register('${inst.op}')
 
-	is.add_instruction(.mov, [X64Operand.register(result_reg), X64Operand.register(operand_reg)], 'Load operand')
+	is.add_instruction(.mov, [X64Operand.Register(result_reg), X64Operand.Register(operand_reg)], 'Load operand')
 }
 
 pub fn (mut is InstructionSelector) select_load(inst ssa.Load) {
@@ -195,7 +199,7 @@ pub fn (mut is InstructionSelector) select_load(inst ssa.Load) {
 	result_reg := is.allocate_result_register('load')
 
 	is.add_instruction(.mov, [
-		X64Operand.register(result_reg),
+		X64Operand.Register(result_reg),
 		X64Operand.mem_reg(ptr_reg, 0)
 	], 'Load from memory')
 }
@@ -206,7 +210,7 @@ pub fn (mut is InstructionSelector) select_store(inst ssa.Store) {
 
 	is.add_instruction(.mov, [
 		X64Operand.mem_reg(ptr_reg, 0),
-		X64Operand.register(value_reg)
+		X64Operand.Register(value_reg)
 	], 'Store to memory')
 }
 
@@ -214,20 +218,84 @@ pub fn (mut is InstructionSelector) select_alloca(_inst ssa.Alloca) {
 	// Simplified stack allocation
 	result_reg := is.allocate_result_register('alloc')
 	is.add_instruction(.lea, [
-		X64Operand.register(result_reg),
+		X64Operand.Register(result_reg),
 		X64Operand.mem_reg(.rbp, -8)
 	], 'Allocate stack space')
 }
 
-pub fn (mut is InstructionSelector) select_call(inst ssa.Call) {
-	// Simplified function call - prepare arguments
+pub fn (mut is InstructionSelector) select_call(inst ssa.Call) []X64Code {
+	// System V x64 calling convention implementation
+	mut call_instructions := []X64Code{}
+
+	// Map argument registers (System V AMD64 ABI)
+	arg_registers := [regalloc.PhysicalRegister.rdi,
+	                  regalloc.PhysicalRegister.rsi,
+	                  regalloc.PhysicalRegister.rdx,
+	                  regalloc.PhysicalRegister.rcx,
+	                  regalloc.PhysicalRegister.r8,
+	                  regalloc.PhysicalRegister.r9]
+
+	stack_offset := 0
+
+	// Handle arguments
 	for i, arg in inst.args {
 		arg_reg := is.get_operand_register(arg)
-		if i == 0 { is.add_instruction(.mov, [X64Operand.register(.rdi), X64Operand.register(arg_reg)], 'Argument 0') }
-		if i == 1 { is.add_instruction(.mov, [X64Operand.register(.rsi), X64Operand.register(arg_reg)], 'Argument 1') }
+
+		if i < arg_registers.len {
+			// Pass in register
+			call_instructions << X64Code{
+				instruction: .mov
+				operands: [X64Operand.Register(arg_registers[i]), X64Operand.Register(arg_reg)]
+				comment: 'Pass argument ${i} in register'
+			}
+		} else {
+			// Pass on stack
+			call_instructions << X64Code{
+				instruction: .push
+				operands: [X64Operand.Register(arg_reg)]
+				comment: 'Pass argument ${i} on stack'
+			}
+			stack_offset += 8 // 8 bytes per argument on x64
+		}
 	}
 
-	is.add_instruction(.call, [X64Operand.immediate(0)], 'Function call') // Placeholder for function address
+	// Align stack to 16-byte boundary if needed
+	if stack_offset % 16 != 0 {
+		alignment := 16 - (stack_offset % 16)
+		call_instructions << X64Code{
+			instruction: .sub
+			operands: [X64Operand(register(.rsp)), X64Operand(immediate(alignment))]
+			comment: 'Align stack to 16-byte boundary'
+		}
+
+		call_instructions << X64Code{
+			instruction: .call
+			operands: [X64Operand(immediate(0))] // Placeholder for function address
+			comment: 'Call function'
+		}
+
+		call_instructions << X64Code{
+			instruction: .add
+			operands: [X64Operand(register(.rsp)), X64Operand(immediate(alignment))]
+			comment: 'Restore stack alignment'
+		}
+	} else {
+		call_instructions << X64Code{
+			instruction: .call
+			operands: [X64Operand(immediate(0))] // Placeholder for function address
+			comment: 'Call function'
+		}
+	}
+
+	// Return value handling - assume result goes to rax
+	result_reg := is.allocate_result_register('call_result')
+	call_instructions << X64Code{
+		instruction: .mov
+		operands: [X64Operand.Register(result_reg), X64Operand.Register(.rax)]
+		comment: 'Move return value from rax'
+	}
+
+	return call_instructions
 }
 
 // Helper functions
@@ -245,15 +313,66 @@ pub fn (is InstructionSelector) get_operand_register(val ssa.Value) regalloc.Phy
 	}
 }
 
-pub fn (is InstructionSelector) allocate_result_register(_op string) regalloc.PhysicalRegister {
-	// Simplified - always use rax for now
-	return regalloc.PhysicalRegister.rax
+pub fn (is InstructionSelector) allocate_result_register(op string) regalloc.PhysicalRegister {
+	// Need proper register allocation logic here
+	// For now, return a reasonable choice based on operation type
+	return match op {
+		'add', 'sub', 'mul' {
+			regalloc.PhysicalRegister.rax
+		}
+		'load', 'store' {
+			regalloc.PhysicalRegister.rbx
+		}
+		else {
+			regalloc.PhysicalRegister.rax
+		}
+	}
 }
 
-pub fn (mut is InstructionSelector) add_instruction(inst X64Instruction, operands []X64Operand, comment string) {
+pub fn (mut is InstructionSelector) setup_stack_frame(local_vars int, max_frame_size int) {
+	// Calculate required stack space
+	stack_frame_size := max_frame_size
+	if stack_frame_size % 16 != 0 {
+		stack_frame_size += 16 - (stack_frame_size % 16) // 16-byte alignment
+	}
+
+	// Function prologue
+	is.add_instruction(.push, [X64Operand.Register(.rbx)], 'Save callee-saved register rbx')
+	is.add_instruction(.push, [X64Operand.Register(.r12)], 'Save callee-saved register r12')
+	is.add_instruction(.push, [X64Operand.Register(.r13)], 'Save callee-saved register r13')
+	is.add_instruction(.push, [X64Operand.Register(.r14)], 'Save callee-saved register r14')
+	is.add_instruction(.push, [X64Operand.Register(.r15)], 'Save callee-saved register r15')
+
+	is.add_instruction(.push, [X64Operand.Register(.rbp)], 'Save base pointer')
+	is.add_instruction(.mov, [X64Operand.Register(.rbp), X64Operand.Register(.rsp)], 'Set new base pointer')
+
+	// Allocate space for local variables
+	if stack_frame_size > 0 {
+		is.add_instruction(.sub, [X64Operand.Register(.rsp), X64Operand.Immediate(stack_frame_size)], 'Allocate stack space for local variables')
+	}
+
+	// Store stack frame info for instruction selection
+	is.stack_frame_size = stack_frame_size
+	is.local_var_count = local_vars
+}
+
+pub fn (is InstructionSelector) add_instruction(inst X64Instruction, operands []X64Operand, comment string) {
 	is.code << X64Code{
 		instruction: inst
 		operands: operands
 		comment: comment
 	}
+}
+
+// Helper functions for creating operands
+fn register(reg regalloc.PhysicalRegister) X64Operand {
+	return X64Operand.Register(reg)
+}
+
+fn mem_reg(reg regalloc.PhysicalRegister, offset int) MemRegOperand {
+	return MemRegOperand{ reg: reg, offset: offset }
+}
+
+fn immediate(val int) ImmediateOperand {
+	return ImmediateOperand{ val: val }
 }
