@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(C:\\Users\\Administrator\\.vmodules/**)",
+      "Bash(ln:*)",
+      "Read(C:\\Users\\Administrator\\.vmodules/**)",
+      "Bash(v fmt:*)",
+      "Bash(v -check:*)",
+      "mcp__MCPcache__store_data",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

@@ -3,28 +3,60 @@ V compiler... but tinier
 
 A simplistic compiler for the V language: https://github.com/vlang/v
 
-## What this is / is not
-* It **is not** intended to be a replacement, substitution, or competitor for the main v compiler.
-* It **is not** intended to support all the features of the main v compiler (idealy high 90% of features).
-* It **is** a research project to discover ways to improve the main v compiler.
-* It **is** intended to be a functioning v compiler.
-* It **is** going to remain simple.
-* It **is** for fun.
+*This is an experiment & may change drastically at any moment.*
+
+## Foreword
+tinyv was started as a research project to discover ways to simplify & improve the main V compiler.
+
+The fundamental principles of tinyv are simplicity & stability, and it must remain simple.
 
 ## Motivation
-#### Fun.
-I want to make a v compiler which is as simple as possible and with minimal lines of code (no frills).
-The thing I love about v is its simplicity and the simplicity of the compiler, as more features are added and more edge cases are created the complexity of the compiler increases.
+I'm very passionate about the V project & it's community. My goal is to make V the best it can be.
 
-My goal is not to support all of the features of the main compiler, but a compromise beween simplicity and feature support. I would like to acheive high 90% feature support while keeping the codebase as simple as possible.
-#### Research.
-I'm really passionate about the v project and it's community, my main focus is to make the v compiler better.
+I love the simplicity of V, although over time the complexity of the compiler has increased significantly. It can be challenging to test new ideas (especially regarding core features). This project allows me to easily try out new ideas and simplifications without existing constraints.
 
-Without any existing constraints, and using what I have learned I am able to easily test new ideas & simplifications which could end up being migrated into the main compiler.
+## New features / Possible Differences
+1. Compile time Code Execution:
+   - Any V function will be able to be run at compile time, by using the compile time call syntax `x := $fn_call()` (actual syntax may differ), the function will go through the normal stages AST -> IR -> Bytecode and will then be run through the interpreter, the result will be statically compiled into the program.
+2. Metadata / Compile Time Introspection:
+   - Make introspection first class. Have a core interface to allow any object to expose metadata to the user. As an example, objects of type `Struct` will provide metadata for fields, methods, and their types. Objects will be able to expose this data by satisfying the interface, no special implementations needed.
+   - Potential metadata access syntax:
+      - Global:`$global.metadata.os`
+      - Struct Instance: `struct_inst.$metadata.fields`
+      - Function: `function.$metadata.return_type`
+3. Language / Syntax Changes:
+   - I don't want to break backwards compatibility, however there are various small changes which I feel would help unify the language (TODO: Add).
+   - Explicit references, no auto-magic referencing and dereferencing.
+   - Explicit mutable references: `mut &x` but this doesn't make sense for fn args, because then what is a mutable non reference? `mut x`
+   - Add a Tuple type: a fast fixed list type. Multi return could use this.
+   - Ability to take the underlying Sum Type pointer address. Extremely useful for:
+      - Comparison
+      - Map Keys
+      - Referencing Nodes
+      - Preventing Recursion
+   - Named parameters & default parameters
+   - Uninitialized objects: Consider the possibility of uninitialized objects. This would need to be `unsafe`, and would probably rarely be used. However there are certain areas, for example game development where the lack of this feature could be a non starter. For example when dealing with huge arrays of data structures like game assets or entities.
 
-## Status
-1. Scanner / Lexer - Working (almost complete)
-2. Parser - Working (incomplete, stub methods & nodes)
-3. Backends / Generation Stage
-   - x64 (not started)
-   - C (not started)
+## Design Details / Stages (status)
+1. Frontend
+   - Scanner (working)
+   - Parser (working)
+   - AST Generation (working)
+2. Middle
+   - Type Checking
+   - AST -> SSA IR (in progress)
+   - Optimization passes
+3. Interpreter (Bytecode VM)
+   - SSA IR -> Bytecode
+   - Used for Compile time code execution
+4. Backend / Code Generation
+   - V (working): AST -> V Generates V code from the AST, useful for testing the parser
+   - x64 (planned): IR -> x64 machine code
+   - C (under consideration)
+
+## Running tinyv
+```bash
+ln -s /path/to/code/tinyv/src/tinyv $HOME/.vmodules/tinyv
+v run src/cmd/tinyv/tinyv.v --skip-builtin --skip-imports -d test/syntax.v
+```
+
