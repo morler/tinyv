@@ -695,10 +695,49 @@ pub fn (mut p Parser) type_decl(is_public bool) ast.TypeDecl {
 	}
 }
 
-pub fn (mut p Parser) error(msg string) {
-	println('error: $msg')
-	col := p.scanner.pos-p.scanner.last_nl_pos-p.scanner.lit.len
-	println('$p.file_path:$p.scanner.line_nr:$col')
-	exit(1)
+pub fn (mut p Parser) parse_switch() ast.Stmt {
+	p.next() // consume 'switch'
+	cond := p.expr(.lowest)
+	p.expect(.lcbr)
+	mut cases := []ast.SwitchCase{}
+	mut default_stmts := []ast.Stmt{}
+	for p.tok != .rcbr {
+		if p.tok == .name && p.scanner.lit == 'case' {
+			p.next()
+			mut vals := []ast.Expr{}
+			for {
+				vals << p.expr(.lowest)
+				if p.tok == .comma {
+					p.next()
+				} else {
+					break
+				}
+			}
+			p.expect(.colon)
+			mut stmts := []ast.Stmt{}
+			for p.tok != .rcbr && p.tok != .key_case && p.tok != .key_default {
+				stmts << p.stmt()
+			}
+			cases << ast.SwitchCase{
+				vals: vals
+				stmts: stmts
+				fallthrough: false
+			}
+		} else if p.tok == .name && p.scanner.lit == 'default' {
+			p.next()
+			p.expect(.colon)
+			for p.tok != .rcbr {
+				default_stmts << p.stmt()
+			}
+		} else {
+			panic('Unexpected token in switch: $p.tok')
+		}
+	}
+	p.expect(.rcbr)
+	return ast.Switch{
+		cond: cond
+		cases: cases
+		default_stmts: default_stmts
+	}
 }
 
