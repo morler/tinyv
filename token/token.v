@@ -63,6 +63,7 @@ pub enum Token {
 	number // 123
 	string // 'foo'
 	str_inter // 'name=$user.name'
+	str_raw // r'foo'
 	chartoken // `A`
 	plus
 	minus

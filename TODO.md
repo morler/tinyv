@@ -6,7 +6,7 @@ Based on the project status and code review, here are the key areas that need wo
 
 - [x] Implement support for string interpolation (`str_inter` token).
 - [x] Add support for the `@` symbol (attributes, `at` token).
-- [ ] Implement support for raw strings.
+- [x] Implement support for raw strings.
 - [ ] Add support for rune literals (Unicode code points).
 - [x] Implement support for floating-point number literals (fraction & exponent parts).
 - [ ] Add support for imaginary number literals.
