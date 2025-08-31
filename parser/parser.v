@@ -10,6 +10,7 @@ struct Parser {
 mut:
 	scanner   &scanner.Scanner
 	tok       token.Token
+	peek_tok ?token.Token
 }
 
 pub fn new_parser(file string) Parser {
@@ -110,6 +111,18 @@ pub fn (mut p Parser) top_stmt() ast.Stmt {
 
 pub fn (mut p Parser) stmt() ast.Stmt {
 	println('STMT: $p.tok')
+	if p.tok == .name {
+		label_lit := p.scanner.lit
+		if p.peek() == .colon {
+			p.next() // consume name (now tok = colon)
+			p.next() // consume colon
+			stmt := p.stmt()
+			return ast.LabeledStmt{
+				label: label_lit
+				stmt: stmt
+			}
+		}
+	}
 	match p.tok {
 		// .assign, .decl_assign {
 		// 	p.next()
@@ -179,6 +192,14 @@ pub fn (mut p Parser) stmt() ast.Stmt {
 		}
 		.key_switch {
 			return p.parse_switch()
+		}
+		.key_goto {
+			p.next()
+			label := p.scanner.lit
+			p.expect(.name)
+			return ast.Goto{
+				label: label
+			}
 		}
 			.key_defer {
 			p.next()
@@ -447,7 +468,13 @@ pub fn (mut p Parser) expr(min_lbp token.BindingPower) ast.Expr {
 
 pub fn (mut p Parser) next() {
 	for {
-		p.tok = p.scanner.scan()
+		p.tok = if p.peek_tok != none {
+			val := p.peek_tok.unwrap()
+			p.peek_tok = none
+			val
+		} else {
+			p.scanner.scan()
+		}
 		if p.tok != .comment {
 			break
 		}
@@ -462,9 +489,12 @@ pub fn (mut p Parser) expect(tok token.Token) {
 	p.next()
 }
 
-// pub fn (mut p Parser) peek(pos int) scanner.Token {
-// 	return scanner.
-// }
+pub fn (mut p Parser) peek() token.Token {
+	if p.peek_tok == none {
+		p.peek_tok = p.scanner.scan()
+	}
+	return p.peek_tok.unwrap()
+}
 
 pub fn (p &Parser) block() []ast.Stmt {
 	mut stmts := []ast.Stmt{}
