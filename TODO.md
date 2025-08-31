@@ -66,7 +66,7 @@
 
 #### 2.1 目标架构支持
 - [x] 创建 x64 汇编代码生成模块 (核心架构已定义)
-- [ ] 定义完整的寄存器分配接口
+- [x] 定义完整的寄存器分配接口 (Interface and core types defined in src/tinyv/codegen/regalloc/interface.v)
 - [ ] 实现基本的指令选择
 
 #### 2.2 代码生成
@@ -212,8 +212,8 @@
 
 ## 📈 进度追踪
 
-### 当前状态 (2025-08-30)
-**已完成**: SSA中间表示及AST到SSA转换核心功能完成。SSA构造算法与论文验证和修复完成。
+### 当前状态 (2025-08-31)
+**已完成**: SSA中间表示及AST到SSA转换核心功能完成。SSA构造算法与论文验证和修复完成。Register allocation interface defined as first step in machine code generation backend development.
 **解决的问题**:
 - [x] ssa.v和ref-1.v中的类型定义冲突 - 已统一为联合类型设计
 - [x] BasicBlock结构重复定义且不一致 - 已合并为统一结构
@@ -230,8 +230,9 @@
 - [x] 函数调用和返回值处理 - 已实现基本调用和返回机制
 - [x] **增强AST到SSA转换，完善其他AST节点支持** - 已添加对关键AST节点的支持，包括索引、字段选择、复合字面量、条件表达式等
 - [x] **SSA算法与论文验证** - 已修复支配边界计算算法bug，确保符合"SSE 论文"标准
+- [x] **定义完整的寄存器分配接口** - 已创建core interface definitions in src/tinyv/codegen/regalloc/interface.v including RegisterAllocator interface, PhysicalRegister enum, AllocationHint, and auxiliary types
 
-**下一步行动**:机器代码生成后端开发开始，已创建x64指令定义框架，准备实现指令选择和代码生成。
+**下一步行动**: Implement register allocation analysis framework (live range computation and interference graph) as Phase 2 of machine code backend development.
 
 ### 里程碑定义
 - **Alpha**: SSA IR 和基本代码生成完成
