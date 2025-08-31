@@ -82,7 +82,9 @@ pub:
 }
 
 pub struct If {
-
+	cond Expr
+	then_stmts []Stmt
+	else_stmts []Stmt
 }
 
 pub struct Infix {
@@ -150,7 +152,7 @@ pub struct StructField {
 	is_mut bool
 	name string
 	is_embed bool
-	typ Expr
+	typ string
 	default_val ?Expr
 }
 

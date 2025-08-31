@@ -126,7 +126,29 @@ pub fn (mut p Parser) stmt() ast.Stmt {
 			p.block()
 			return ast.For{}
 		}
-		// .key_if {}
+		.key_if {
+			cond := p.expr(.lowest)
+			then_stmts := p.block()
+			mut else_stmts := []ast.Stmt{}
+			if p.tok == .key_else {
+				p.next()
+				if p.tok == .key_if {
+					// else if
+					elif := p.stmt() // recursive
+					if elif is ast.If {
+						else_stmts = [elif]
+					}
+				} else {
+					// else
+					else_stmts = p.block()
+				}
+			}
+			return ast.If{
+				cond: cond
+				then_stmts: then_stmts
+				else_stmts: else_stmts
+			}
+		}
 		.name, .key_mut {
 			lhs := p.expr_list()
 			if p.tok in [.assign, .decl_assign, .plus_assign, .minus_assign] {
@@ -608,8 +630,18 @@ pub fn (mut p Parser) struct_decl(is_public bool) ast.StructDecl {
 		field_name := p.scanner.lit
 		p.expect(.name)
 		println('field: $field_name')
-		typ := p.scanner.lit
-		p.expect(.name)  // type
+		mut typ := ''
+		mut is_embed := false
+		if p.tok == .name {
+			// parse type
+			// for now, simple string
+			typ = p.scanner.lit
+			p.expect(.name)
+		} else {
+			// embedded
+			is_embed = true
+			typ = field_name
+		}
 		mut default_val := ?ast.Expr{none}
 		if p.tok == .assign {
 			p.next()
@@ -619,7 +651,7 @@ pub fn (mut p Parser) struct_decl(is_public bool) ast.StructDecl {
 			is_pub: is_pub
 			is_mut: is_mut
 			name: field_name
-			is_embed: false
+			is_embed: is_embed
 			typ: typ
 			default_val: default_val
 		}

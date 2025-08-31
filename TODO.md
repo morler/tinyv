@@ -16,12 +16,12 @@ Based on the project status and code review, here are the key areas that need wo
 
 - [x] Complete `const_decl` implementation: Parse and store the assigned expression value.
 - [x] Complete `enum_decl` implementation: Parse and store enum fields and their potential values.
-- [ ] Complete `struct_decl` implementation: Parse and store struct fields, their types, mutability, and default values. Handle struct embedding.
+- [x] Complete `struct_decl` implementation: Parse and store struct fields, their types, mutability, and default values. Handle struct embedding.
 - [x] Complete `type_decl` implementation: Correctly parse type aliases and function types.
 
 ## 3. Parser - Statements (`stmt` function)
 
-- [ ] Implement parsing for `if` statements.
+- [x] Implement parsing for `if` statements.
 - [ ] Implement parsing for `switch` statements.
 - [ ] Implement parsing for `match` expressions/statements (more robustly than current).
 - [ ] Implement parsing for `go` and `defer` statements.
