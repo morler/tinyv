@@ -190,8 +190,41 @@ fn (bb &BasicBlock) dominates(other &BasicBlock) bool {
 	return false
 }
 
-// Dominance frontier calculation (simplified version)
-fn (f Function) compute_dominance_frontier() {}
+fn (bb &BasicBlock) get_dominator_children() []&BasicBlock {
+	mut children := []&BasicBlock{}
+	for b in bb.parent_fn.bb {
+		if b.immediate_dominator == unsafe { &bb } {
+			children << b
+		}
+	}
+	return children
+}
+
+// Dominance frontier calculation
+fn (mut f Function) compute_dominance_frontier() {
+	// Initialize dominance frontiers for all blocks
+	for mut bb in f.bb {
+		bb.dominance_frontier = []&BasicBlock{}
+	}
+
+	// Compute dominance frontier for each block
+	for bb in f.bb {
+		// If node has multiple predecessors, add to DF of predecessors
+		if bb.predecessors.len >= 2 {
+			for pred in bb.predecessors {
+				mut runner := pred
+				// Walk up the dominator tree until we reach a block that dominates bb
+				for runner != unsafe { nil } && !runner.dominates(bb) {
+					// Add bb to runner's dominance frontier if not already present
+					if !runner.dominance_frontier.contains(bb) {
+						runner.dominance_frontier << bb
+					}
+					runner = runner.immediate_dominator
+				}
+			}
+		}
+	}
+}
 
 // Value interface methods
 fn (v Value) to_string() string {
@@ -225,6 +258,66 @@ fn (mut f Function) create_variable(name string, typ types.Type) &Variable {
 struct Function {
 mut:
 	bb []&BasicBlock
+}
+
+fn (f Function) get_defined_variables() []string {
+	mut vars := map[string]bool{}
+	for bb in f.bb {
+		for var_name in bb.definitions.keys() {
+			vars[var_name] = true
+		}
+	}
+	return vars.keys()
+}
+
+fn (f Function) get_definition_blocks(var_name string) []&BasicBlock {
+	mut blocks := []&BasicBlock{}
+	for bb in f.bb {
+		if var_name in bb.definitions {
+			blocks << bb
+		}
+	}
+	return blocks
+}
+
+
+
+// Renamer for variable renaming algorithm
+struct Renamer {
+mut:
+	stacks  map[string][]Value
+	counter int
+}
+
+fn (mut r Renamer) push(var_name string, val Value) {
+	if var_name !in r.stacks {
+		r.stacks[var_name] = []
+	}
+	r.stacks[var_name] << val
+}
+
+fn (mut r Renamer) pop(var_name string) {
+	if var_name in r.stacks && r.stacks[var_name].len > 0 {
+		r.stacks[var_name].pop()
+	}
+}
+
+fn (r Renamer) top(var_name string) Value {
+	stack := r.stacks[var_name] or { return Value(None(0)) }
+	if stack.len > 0 {
+		return stack.last()
+	}
+	return Value(None(0))
+}
+
+fn (mut r Renamer) new_name(var_name string, typ types.Type, block &BasicBlock) Value {
+	r.counter++
+	new_var := Variable{
+		parent: unsafe { block.parent_fn }
+		name: '${var_name}_${r.counter}'
+		typ: typ
+	}
+	return new_var
 }
 
 // Terminators
@@ -321,16 +414,17 @@ mut:
 	name         string
 	instructions []Instruction
 	terminator   Terminator
-	
+
 	// ref-1.v SSA algorithm fields
 	predecessors    []&BasicBlock
 	definitions     map[string]Value
 	incomplete_phis map[string]Phi
 	sealed          bool
-	
+
 	// Additional fields for complete CFG support
 	immediate_dominator &BasicBlock
 	successors         []&BasicBlock
+	dominance_frontier []&BasicBlock
 }
 
 fn add_edge(from &BasicBlock, mut to BasicBlock) {
