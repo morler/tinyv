@@ -297,20 +297,7 @@ pub fn (mut p Parser) expr(min_lbp token.BindingPower) ast.Expr {
 			// }
 		}
 		.key_match {
-			p.next()
-			p.expr(.lowest)
-			p.expect(.lcbr)
-			for p.tok != .rcbr {
-				p.expr(.lowest)
-				p.block()
-				if p.tok == .key_else {
-					p.next()
-					p.block()
-				}
-			}
-			p.expect(.rcbr)
-
-			return ast.Match{}
+			return p.parse_match()
 		}
 		.key_mut, .name {
 			is_mut := p.tok == .key_mut
@@ -737,7 +724,45 @@ pub fn (mut p Parser) parse_switch() ast.Stmt {
 	return ast.Switch{
 		cond: cond
 		cases: cases
-		default_stmts: default_stmts
+	}
+}
+
+
+pub fn (mut p Parser) parse_match() ast.Expr {
+	p.next() // consume 'match'
+	cond := p.expr(.lowest)
+	p.expect(.lcbr)
+	mut cases := []ast.MatchCase{}
+	mut else_stmts := []ast.Stmt{}
+	for p.tok != .rcbr {
+		if p.tok == .name && p.scanner.lit == 'case' {
+			p.next()
+			mut vals := []ast.Expr{}
+			for {
+				vals << p.expr(.lowest)
+				if p.tok == .comma {
+					p.next()
+				} else {
+					break
+				}
+			}
+			stmts := p.block()
+			cases << ast.MatchCase{
+				vals: vals
+				stmts: stmts
+			}
+		} else if p.tok == .name && p.scanner.lit == 'else' {
+			p.next()
+			else_stmts = p.block()
+		} else {
+			panic('Unexpected token in match: $p.tok')
+		}
+	}
+	p.expect(.rcbr)
+	return ast.Match{
+		expr: cond
+		cases: cases
+		else_stmts: else_stmts
 	}
 }
 
