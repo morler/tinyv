@@ -180,14 +180,19 @@ pub fn (mut p Parser) stmt() ast.Stmt {
 		.key_switch {
 			return p.parse_switch()
 		}
-		else {
-			println('HRMMM: $p.tok')
-			expr := p.expr(.lowest)
-			if p.tok in [.assign, .decl_assign] {
-				p.next()
-				return ast.Assign{}
+			.key_defer {
+			p.next()
+			stmts := p.block()
+			return ast.Defer{
+				stmt: ast.Block{ stmts: stmts }
 			}
-			return ast.ExprStmt{}
+		}
+		.key_go {
+			p.next()
+			expr := p.expr(.lowest)
+			return ast.Go{
+				stmt: ast.ExprStmt{ expr: expr }
+			}
 		}
 	}
 
