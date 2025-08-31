@@ -283,7 +283,7 @@ fn (mut s Scanner) whitespace() {
 	}
 }
 
-fn(s &Scanner) comment() {
+fn(mut s Scanner) comment() {
 	s.pos++
 	match s.text[s.pos] {
 		// single line
@@ -342,13 +342,17 @@ fn (mut s Scanner) string_literal() {
 }
 
 fn (mut s Scanner) number() {
+	// Check for special number formats (0b, 0x, 0o)
 	if s.text[s.pos] == `0` {
 		s.pos++
+		if s.pos >= s.text.len {
+			return // Just "0"
+		}
 		c := s.text[s.pos]
 		// 0b (binary)
 		if c in [`b`, `B`] {
 			s.pos++
-			for s.text[s.pos] in [`0`, `1`] {
+			for s.pos < s.text.len && s.text[s.pos] in [`0`, `1`] {
 				s.pos++
 			}
 			return
@@ -356,7 +360,7 @@ fn (mut s Scanner) number() {
 		// 0x (hex)
 		else if c in [`x`, `X`] {
 			s.pos++
-			for {
+			for s.pos < s.text.len {
 				c2 := s.text[s.pos]
 				if (c2 >= `0` && c2 <= `9`) || (c2 >= `a` && c2 <= `z`) || (c2 >= `A` && c2 <= `Z`) {
 					s.pos++
@@ -364,11 +368,12 @@ fn (mut s Scanner) number() {
 				}
 				return
 			}
+			return
 		}
 		// 0o (octal)
 		else if c in [`o`, `O`] {
 			s.pos++
-			for {
+			for s.pos < s.text.len {
 				c2 := s.text[s.pos]
 				if c2 >= `0` && c2 <= `7` {
 					s.pos++
@@ -376,9 +381,14 @@ fn (mut s Scanner) number() {
 				}
 				return
 			}
+			return
 		}
+		// If it's just a plain 0 followed by non-special character, continue with decimal parsing
+		// We decrement pos to re-process the '0' as part of the decimal number
+		s.pos--
 	}
-	// continue decimal (and also completion of bin/octal)
+	
+	// Parse integer part
 	for s.pos < s.text.len {
 		c := s.text[s.pos]
 		if c >= `0` && c <= `9` {
@@ -387,10 +397,48 @@ fn (mut s Scanner) number() {
 		}
 		break
 	}
-	// TODO: fraction & exponent
+	
+	// Check for fractional part
+	if s.pos < s.text.len && s.text[s.pos] == `.` {
+		// Make sure there's a digit after the dot to distinguish from range operator (..)
+		if s.pos+1 < s.text.len && s.text[s.pos+1] >= `0` && s.text[s.pos+1] <= `9` {
+			s.pos++ // skip '.'
+			// Parse fractional part
+			for s.pos < s.text.len {
+				c := s.text[s.pos]
+				if c >= `0` && c <= `9` {
+					s.pos++
+					continue
+				}
+				break
+			}
+		}
+	}
+	
+	// Check for exponent part
+	if s.pos < s.text.len && (s.text[s.pos] == `e` || s.text[s.pos] == `E`) {
+		exp_pos := s.pos
+		s.pos++ // skip 'e' or 'E'
+		
+		// Optional sign
+		if s.pos < s.text.len && (s.text[s.pos] == `+` || s.text[s.pos] == `-`) {
+			s.pos++
+		}
+		
+		// Must have at least one digit in exponent
+		exponent_start := s.pos
+		for s.pos < s.text.len && s.text[s.pos] >= `0` && s.text[s.pos] <= `9` {
+			s.pos++
+		}
+		
+		// If no digits were found in exponent, backtrack
+		if s.pos == exponent_start {
+			s.pos = exp_pos
+		}
+	}
 }
 
-[inline]
+@[inline]
 fn (mut s Scanner) name() {
 	for s.pos < s.text.len {
 		c := s.text[s.pos]

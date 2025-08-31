@@ -10,7 +10,7 @@ module token
 //     len     int // length of the literal
 // }
 
-const (
+pub const (
 	key_tokens = {
 		'assert': Token.key_assert,
 		'struct': Token.key_struct,
