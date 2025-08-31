@@ -60,12 +60,18 @@ pub struct X64Code {
 }
 
 // InstructionSelector converts SSA instructions to x64 assembly
+// DWARF debug information support planned for future enhancement
 pub struct InstructionSelector {
 pub mut:
 		register_map map[string]regalloc.PhysicalRegister
 		code []X64Code
 		stack_frame_size int // Size of current stack frame
 		local_var_count int  // Number of local variables
+		// DWARF debug support fields (planned for future implementation)
+		// dwarf_generator DWARFGenerator
+		// current_address u64
+		// current_line u32
+		// source_file_index u32
 }
 
 // Constructor
@@ -75,6 +81,7 @@ pub fn new_instruction_selector(reg_assignments map[string]regalloc.PhysicalRegi
 		code: []X64Code{}
 		stack_frame_size: 0
 		local_var_count: 0
+		// DWARF support will be added in future
 	}
 }
 
@@ -299,6 +306,7 @@ pub fn (mut is InstructionSelector) select_call(inst ssa.Call) []X64Code {
 }
 
 // Helper functions
+// ===============
 pub fn (is InstructionSelector) get_operand_register(val ssa.Value) regalloc.PhysicalRegister {
 	match val {
 		ssa.Variable {

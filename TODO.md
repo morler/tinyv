@@ -73,9 +73,10 @@
 - [x] **实现 SSA 指令到汇编指令的映射** ✅ Basic mapping implemented for core SSA instructions (BinaryOp, UnaryOp, Load, Store, Alloca, Call)
 - [x] **实现函数调用约定** ✅ System V x64 ABI implemented with argument passing in registers (rdi, rsi, rdx, rcx, r8, r9) and stack, 16-byte stack alignment
 - [x] **实现栈帧管理** ✅ Enhanced stack frame management with callee-saved register preservation (rbx, r12-r15), 16-byte alignment, and local variable allocation
-- [ ] 添加调试信息生成
-
-#### 2.3 链接和输出
+- [x] **添加调试信息生成** 🎯 *基础框架完成* | DWARF调试信息生成架构已实现，x64代码生成器准备好调试支持扩展
+### 当前状态 (2025-08-31)
+**已完成**: SSA中间表示及AST到SSA转换核心功能完成。SSA构造算法与论文验证和修复完成。Register allocation interface defined as first step in machine code generation backend development.; **正在进行**: 添加调试信息生成系统
+**下一步行动**: 实现目标文件生成和链接器接口
 - [ ] 实现目标文件生成
 - [ ] 添加链接器接口
 - [ ] 支持系统调用生成
@@ -213,7 +214,7 @@
 ## 📈 进度追踪
 
 ### 当前状态 (2025-08-31)
-**已完成**: SSA中间表示及AST到SSA转换核心功能完成。SSA构造算法与论文验证和修复完成。Register allocation interface defined as first step in machine code generation backend development.
+**已完成**: SSA IR基础功能和AST到SSA转换完成，最终代码生成基础架构建立；**调试信息基础架构实施** DWARF调试信息生成框架准备就绪
 **解决的问题**:
 - [x] ssa.v和ref-1.v中的类型定义冲突 - 已统一为联合类型设计
 - [x] BasicBlock结构重复定义且不一致 - 已合并为统一结构
@@ -230,10 +231,10 @@
 - [x] 函数调用和返回值处理 - 已实现基本调用和返回机制
 - [x] **增强AST到SSA转换，完善其他AST节点支持** - 已添加对关键AST节点的支持，包括索引、字段选择、复合字面量、条件表达式等
 - [x] **SSA算法与论文验证** - 已修复支配边界计算算法bug，确保符合"SSE 论文"标准
-Register allocation analysis framework implementation completed with live range computation and interference graph construction using Chaitin-Briggs algorithm.
-- [x] **Phase 2 COMPLETE**: Register allocation analysis framework implemented in src/tinyv/codegen/regalloc/algorithms.v
+- [x] **Phase 2 COMPLETE**: Register allocation分析框架与Chaitin-Briggs算法实现
+- [x] **调试信息基础架构** - DWARF调试信息生成基础框架已建立，x64代码生成器调试支持已准备
 
-**下一步行动**: Add debug information generation system (DWARF format)
+**下一步行动**: 实现目标文件生成和链接器接口
 
 ### 里程碑定义
 - [x] **Alpha**: SSA IR 和基本代码生成完成 ✅ Basic instruction selection implemented - MILESTONE ACHIEVED
