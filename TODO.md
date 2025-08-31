@@ -67,10 +67,10 @@
 #### 2.1 目标架构支持
 - [x] 创建 x64 汇编代码生成模块 (核心架构已定义)
 - [x] 定义完整的寄存器分配接口 (Interface and core types defined in src/tinyv/codegen/regalloc/interface.v)
-- [ ] 实现基本的指令选择
+- [x] **实现基本的指令选择** ✅ Core instruction selection framework implemented in x64_codegen.v with support for arithmetic, memory, and control flow operations
 
 #### 2.2 代码生成
-- [ ] 实现 SSA 指令到汇编指令的映射
+- [x] **实现 SSA 指令到汇编指令的映射** ✅ Basic mapping implemented for core SSA instructions (BinaryOp, UnaryOp, Load, Store, Alloca, Call)
 - [ ] 实现函数调用约定
 - [ ] 实现栈帧管理
 - [ ] 添加调试信息生成
@@ -230,12 +230,13 @@
 - [x] 函数调用和返回值处理 - 已实现基本调用和返回机制
 - [x] **增强AST到SSA转换，完善其他AST节点支持** - 已添加对关键AST节点的支持，包括索引、字段选择、复合字面量、条件表达式等
 - [x] **SSA算法与论文验证** - 已修复支配边界计算算法bug，确保符合"SSE 论文"标准
-- [x] **定义完整的寄存器分配接口** - 已创建core interface definitions in src/tinyv/codegen/regalloc/interface.v including RegisterAllocator interface, PhysicalRegister enum, AllocationHint, and auxiliary types
+Register allocation analysis framework implementation completed with live range computation and interference graph construction using Chaitin-Briggs algorithm.
+- [x] **Phase 2 COMPLETE**: Register allocation analysis framework implemented in src/tinyv/codegen/regalloc/algorithms.v
 
-**下一步行动**: Implement register allocation analysis framework (live range computation and interference graph) as Phase 2 of machine code backend development.
+**下一步行动**: Complete remaining function calling conventions and stack frame management. Evaluate beta milestone readiness with Alpha already achieved.
 
 ### 里程碑定义
-- **Alpha**: SSA IR 和基本代码生成完成
+- [x] **Alpha**: SSA IR 和基本代码生成完成 ✅ Basic instruction selection implemented - MILESTONE ACHIEVED
 - **Beta**: 优化器和完整工具链完成
 - **Release**: 所有功能完整，测试覆盖充分
 
