@@ -25,7 +25,7 @@ Based on the project status and code review, here are the key areas that need wo
 - [ ] Implement parsing for `switch` statements.
 - [x] Implement parsing for `match` expressions/statements (more robustly than current).
 - [x] Implement parsing for `go` and `defer` statements.
-- [ ] Implement parsing for `asm` blocks.
+- [x] Implement parsing for `asm` blocks.
 - [ ] Implement parsing for labeled statements and `goto`.
 - [ ] Improve error handling and reporting within the statement parsing loop.
 

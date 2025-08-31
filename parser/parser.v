@@ -194,6 +194,9 @@ pub fn (mut p Parser) stmt() ast.Stmt {
 				stmt: ast.ExprStmt{ expr: expr }
 			}
 		}
+		.key_asm {
+			return p.parse_asm()
+		}
 	}
 
 	// TODO
@@ -769,5 +772,24 @@ pub fn (mut p Parser) parse_match() ast.Expr {
 		cases: cases
 		else_stmts: else_stmts
 	}
+}
+
+
+pub fn (mut p Parser) parse_asm() ast.Stmt {
+	p.next() // consume asm
+	mut body := ''
+	// optionally parse arch (e.g., amd64)
+	if p.tok == .name {
+		p.next() // skip arch
+	}
+	if p.tok == .lcbr {
+		p.next() // skip {
+		for p.tok != .rcbr && p.tok != .eof {
+			body += p.scanner.lit + ' '
+			p.next()
+		}
+		p.expect(.rcbr)
+	}
+	return ast.Asm{ body: body.trim(' ') }
 }
 
