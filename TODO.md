@@ -31,8 +31,8 @@ Based on the project status and code review, here are the key areas that need wo
 
 ## 4. Parser - Expressions (`expr` function)
 
-- [ ] Finish the Pratt parsing loop to correctly handle operator precedence and associativity for all infix and postfix operators.
-- [ ] Implement parsing for prefix operators (`&`, `*`, `!`, `~`, `^`).
+- [x] Finish the Pratt parsing loop to correctly handle operator precedence and associativity for all infix and postfix operators.
+- [x] Implement parsing for prefix operators (`&`, `*`, `!`, `~`, `^`).
 - [ ] Implement parsing for selector expressions (`a.b`).
 - [ ] Implement parsing for call expressions (`f()`).
 - [ ] Implement parsing for slice expressions (`a[1..2]`).
@@ -40,7 +40,7 @@ Based on the project status and code review, here are the key areas that need wo
 - [ ] Implement parsing for `or` blocks (`or {}`).
 - [ ] Implement parsing for `?` operator (optional propagation).
 - [ ] Implement parsing for `none` literal.
-- [ ] Complete `ParExpr` handling.
+- [x] Complete `ParExpr` handling.
 
 ## 5. AST Enhancements
 

@@ -4,7 +4,7 @@ import token
 
 // pub type Decl = ConstDecl | EnumDecl | StructDecl
 pub type Expr = ArrayInit | BoolLiteral | Cast | CharLiteral | Ident | If | Index
-	| Infix | List | Match | NumberLiteral | ParExpr | Prefix | Selector | StringLiteral
+	| Infix | List | Match | NumberLiteral | ParExpr | Postfix | Prefix | Selector | StringLiteral
 	| StructInit
 pub type Stmt =  Assign | Block | ConstDecl | EnumDecl | ExprStmt | FlowControl | FnDecl
 	| For | Go | Defer | Asm | Goto | LabeledStmt | Import | Module | Return | StructDecl | Switch | TypeDecl
@@ -88,7 +88,9 @@ pub struct If {
 }
 
 pub struct Infix {
-
+	lhs Expr
+	op  token.Token
+	rhs Expr
 }
 
 pub struct List {
@@ -97,7 +99,7 @@ pub:
 }
 
 pub struct Import {
-
+	path string
 }
 
 pub struct Index {
@@ -121,15 +123,21 @@ pub:
 }
 
 pub struct ParExpr {
-
+	expr Expr
 }
 
 pub struct Prefix {
+	op  token.Token
+	rhs Expr
+}
 
+pub struct Postfix {
+	lhs Expr
+	op  token.Token
 }
 
 pub struct Return {
-
+	exprs []Expr
 }
 
 pub struct Selector {
@@ -156,8 +164,17 @@ pub struct StructField {
 	default_val ?Expr
 }
 
-pub struct StructInit {
-	
+	Pub struct StructFieldExpr {
+		Name string
+		Expr Expr
+	}
+	pub struct StructInit {
+	fields []StructFieldExpr
+}
+
+pub struct StructFieldExpr {
+	name string
+	expr Expr
 }
 
 pub struct Go {

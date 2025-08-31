@@ -450,12 +450,27 @@ pub fn (mut p Parser) expr(min_lbp token.BindingPower) ast.Expr {
 		// p.next()
 		
 		if p.tok.is_infix() {
+			// Save operator and consume it
+			op := p.tok
 			p.next()
-			lhs =p.expr(p.tok.left_binding_power())
-		}
-		else if p.tok.is_postfix() {
+			// Parse right-hand side with operator precedence
+			rhs := p.expr(lbp)
+			lhs = ast.Infix{
+				lhs: lhs
+				op: op
+				rhs: rhs
+			}
+			println('INFIX: $op with precedence $lbp')
+} else if p.tok.is_postfix() {
+			// Save operator and consume it
+			op := p.tok
 			p.next()
-			lhs = p.expr(p.tok.left_binding_power())
+			// Postfix operators don't need RHS
+			lhs = ast.Postfix{
+				lhs: lhs
+				op: op
+			}
+			println('POSTFIX: $op')
 		}
 		else {
 			// return lhs
