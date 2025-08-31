@@ -7,7 +7,7 @@ pub type Expr = ArrayInit | BoolLiteral | Cast | CharLiteral | Ident | If | Inde
 	| Infix | List | Match | NumberLiteral | ParExpr | Prefix | Selector | StringLiteral
 	| StructInit
 pub type Stmt =  Assign | Block | ConstDecl | EnumDecl | ExprStmt | FlowControl | FnDecl
-	| For | Go | Defer | Asm | Goto | LabeledStmt | Import | Module | Return | StructDecl | TypeDecl
+	| For | Go | Defer | Asm | Goto | LabeledStmt | Import | Module | Return | StructDecl | Switch | TypeDecl
 
 pub struct ArrayInit {
 pub:
@@ -179,5 +179,17 @@ pub struct Goto {
 pub struct LabeledStmt {
 	label string
 	stmt Stmt
+}
+
+pub struct Switch {
+	cond Expr
+	cases []SwitchCase
+	default_stmts []Stmt
+}
+
+pub struct SwitchCase {
+	vals []Expr
+	stmts []Stmt
+	fallthrough bool
 }
 

@@ -177,6 +177,9 @@ pub fn (mut p Parser) stmt() ast.Stmt {
 
 			}
 		}
+		.key_switch {
+			return p.parse_switch()
+		}
 		else {
 			println('HRMMM: $p.tok')
 			expr := p.expr(.lowest)
