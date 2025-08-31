@@ -7,17 +7,17 @@ Based on the project status and code review, here are the key areas that need wo
 - [x] Implement support for string interpolation (`str_inter` token).
 - [x] Add support for the `@` symbol (attributes, `at` token).
 - [x] Implement support for raw strings.
-- [ ] Add support for rune literals (Unicode code points).
+- [x] Add support for rune literals (Unicode code points).
 - [x] Implement support for floating-point number literals (fraction & exponent parts).
-- [ ] Add support for imaginary number literals.
-- [ ] Improve comment handling to correctly parse documentation comments (e.g., `//doc:` or `/*doc*/`).
+- [x] Add support for imaginary number literals.
+- [x] Improve comment handling to correctly parse documentation comments (e.g., `//doc:` or `/*doc*/`).
 
 ## 2. Parser - Top-Level Declarations
 
-- [ ] Complete `const_decl` implementation: Parse and store the assigned expression value.
-- [ ] Complete `enum_decl` implementation: Parse and store enum fields and their potential values.
+- [x] Complete `const_decl` implementation: Parse and store the assigned expression value.
+- [x] Complete `enum_decl` implementation: Parse and store enum fields and their potential values.
 - [ ] Complete `struct_decl` implementation: Parse and store struct fields, their types, mutability, and default values. Handle struct embedding.
-- [ ] Complete `type_decl` implementation: Correctly parse type aliases and function types.
+- [x] Complete `type_decl` implementation: Correctly parse type aliases and function types.
 
 ## 3. Parser - Statements (`stmt` function)
 

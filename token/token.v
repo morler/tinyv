@@ -65,6 +65,7 @@ pub enum Token {
 	str_inter // 'name=$user.name'
 	str_raw // r'foo'
 	chartoken // `A`
+	rune // 'a'
 	plus
 	minus
 	mul

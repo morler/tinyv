@@ -474,20 +474,19 @@ pub fn (mut p Parser) assign(lhs []ast.Expr) ast.Assign {
 }
 
 pub fn (mut p Parser) const_decl(is_public bool) ast.ConstDecl {
-	// is_public := p.tok == .key_pub
-	// if is_public {
-	// 	p.next()
-	// }
-	// p.expect(.key_const)
 	p.next()
 	p.expect(.lpar)
+	mut fields := []ast.ConstField{}
 	for {
 		name := p.scanner.lit
 		p.expect(.name)
 		println('const: $name')
 		p.expect(.assign)
-		// p.next()
-		p.expr(.lowest)
+		expr := p.expr(.lowest)
+		fields << ast.ConstField{
+			name: name
+			expr: expr
+		}
 		if p.tok == .rpar {
 			break
 		}
@@ -495,7 +494,8 @@ pub fn (mut p Parser) const_decl(is_public bool) ast.ConstDecl {
 	p.expect(.rpar)
 
 	return ast.ConstDecl{
-		
+		is_public: is_public
+		fields: fields
 	}
 }
 
@@ -566,14 +566,29 @@ pub fn (mut p Parser) enum_decl(is_public bool) ast.EnumDecl {
 	p.expect(.name)
 	println('enum: $name')
 	p.expect(.lcbr)
-	// fields
+	mut fields := []ast.EnumField{}
 	for p.tok != .rcbr {
-		field := p.scanner.lit
+		field_name := p.scanner.lit
 		p.expect(.name)
-		println('field: $field')
+		println('field: $field_name')
+		mut val := ?ast.Expr{none}
+		if p.tok == .assign {
+			p.next()
+			val = p.expr(.lowest)
+		}
+		fields << ast.EnumField{
+			name: field_name
+			val: val
+		}
+		if p.tok == .comma {
+			p.next()
+		}
 	}
 	p.expect(.rcbr)
 	return ast.EnumDecl{
+		is_public: is_public
+		name: name
+		fields: fields
 	}
 }
 
@@ -583,29 +598,37 @@ pub fn (mut p Parser) struct_decl(is_public bool) ast.StructDecl {
 	p.expect(.name)
 	println('struct: $name')
 	p.expect(.lcbr)
-	// fields
-	for p.tok != .rcbr {
+	mut fields := []ast.StructField{}
+	for {
+		if p.tok == .rcbr { break }
 		is_pub := p.tok == .key_pub
 		if is_pub { p.next() }
 		is_mut := p.tok == .key_mut
 		if is_mut { p.next() }
-		if is_pub || is_mut { p.expect(.colon) }
-		field := p.scanner.lit
+		field_name := p.scanner.lit
 		p.expect(.name)
-		println('field: $field')
-		// typ := p.scanner.lit
-		// p.expect(.name)
-		typ := p.parse_type()
-		// default field value
+		println('field: $field_name')
+		typ := p.scanner.lit
+		p.expect(.name)  // type
+		mut default_val := ?ast.Expr{none}
 		if p.tok == .assign {
 			p.next()
-			default_val := p.expr(.lowest)
+			default_val = p.expr(.lowest)
+		}
+		fields << ast.StructField{
+			is_pub: is_pub
+			is_mut: is_mut
+			name: field_name
+			is_embed: false
+			typ: typ
+			default_val: default_val
 		}
 	}
-	// p.expect(.rcbr)
-	p.next()
+	p.expect(.rcbr)
 	return ast.StructDecl{
-
+		is_public: is_public
+		name: name
+		fields: fields
 	}
 }
 
@@ -630,7 +653,11 @@ pub fn (mut p Parser) type_decl(is_public bool) ast.TypeDecl {
 	p.next() // return type
 
 	println('TYPE: $name')
-	return ast.TypeDecl{}
+	return ast.TypeDecl {
+		is_public: is_public
+		name: name
+		expr: p.expr(.lowest)
+	}
 }
 
 pub fn (mut p Parser) error(msg string) {

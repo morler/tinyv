@@ -78,10 +78,16 @@ pub fn (mut s Scanner) scan0() token.Token {
 		return .name
 	}
 	// string
-	else if c in [`'`, `"`] {
+	else if c == `"` {
 		s.string_literal()
 		s.lit = s.text[start_pos..s.pos]
 		return .string
+	}
+	// rune
+	else if c == `'` {
+		s.rune_literal()
+		s.lit = s.text[start_pos..s.pos]
+		return .rune
 	}
 	// byte (char) `a`
 	else if c == `\`` {
@@ -403,6 +409,13 @@ fn (mut s Scanner) number() {
 		}
 	}
 	
+	// Check for imaginary suffix
+	if s.pos < s.text.len && (s.text[s.pos] == `i` || s.text[s.pos] == `I`) {
+		s.pos++
+	}
+
+}
+	
 	// Check for exponent part
 	if s.pos < s.text.len && (s.text[s.pos] == `e` || s.text[s.pos] == `E`) {
 		exp_pos := s.pos
@@ -424,6 +437,13 @@ fn (mut s Scanner) number() {
 			s.pos = exp_pos
 		}
 	}
+	
+	// Check for imaginary suffix
+	if s.pos < s.text.len && (s.text[s.pos] == `i` || s.text[s.pos] == `I`) {
+		s.pos++
+	}
+
+}
 }
 
 @[inline]
@@ -553,6 +573,13 @@ fn (mut s Scanner) number() {
 		}
 	}
 	
+	// Check for imaginary suffix
+	if s.pos < s.text.len && (s.text[s.pos] == `i` || s.text[s.pos] == `I`) {
+		s.pos++
+	}
+
+}
+	
 	// Check for exponent part
 	if s.pos < s.text.len && (s.text[s.pos] == `e` || s.text[s.pos] == `E`) {
 		exp_pos := s.pos
@@ -574,6 +601,13 @@ fn (mut s Scanner) number() {
 			s.pos = exp_pos
 		}
 	}
+	
+	// Check for imaginary suffix
+	if s.pos < s.text.len && (s.text[s.pos] == `i` || s.text[s.pos] == `I`) {
+		s.pos++
+	}
+
+}
 }
 
 @[inline]
@@ -663,6 +697,13 @@ fn (mut s Scanner) number() {
 		}
 	}
 	
+	// Check for imaginary suffix
+	if s.pos < s.text.len && (s.text[s.pos] == `i` || s.text[s.pos] == `I`) {
+		s.pos++
+	}
+
+}
+	
 	// Check for exponent part
 	if s.pos < s.text.len && (s.text[s.pos] == `e` || s.text[s.pos] == `E`) {
 		exp_pos := s.pos
@@ -684,6 +725,13 @@ fn (mut s Scanner) number() {
 			s.pos = exp_pos
 		}
 	}
+	
+	// Check for imaginary suffix
+	if s.pos < s.text.len && (s.text[s.pos] == `i` || s.text[s.pos] == `I`) {
+		s.pos++
+	}
+
+}
 }
 
 @[inline]
@@ -774,6 +822,13 @@ fn (mut s Scanner) number() {
 		}
 	}
 	
+	// Check for imaginary suffix
+	if s.pos < s.text.len && (s.text[s.pos] == `i` || s.text[s.pos] == `I`) {
+		s.pos++
+	}
+
+}
+	
 	// Check for exponent part
 	if s.pos < s.text.len && (s.text[s.pos] == `e` || s.text[s.pos] == `E`) {
 		exp_pos := s.pos
@@ -795,6 +850,13 @@ fn (mut s Scanner) number() {
 			s.pos = exp_pos
 		}
 	}
+	
+	// Check for imaginary suffix
+	if s.pos < s.text.len && (s.text[s.pos] == `i` || s.text[s.pos] == `I`) {
+		s.pos++
+	}
+
+}
 }
 
 @[inline]
@@ -910,6 +972,13 @@ fn (mut s Scanner) number() {
 		}
 	}
 	
+	// Check for imaginary suffix
+	if s.pos < s.text.len && (s.text[s.pos] == `i` || s.text[s.pos] == `I`) {
+		s.pos++
+	}
+
+}
+	
 	// Check for exponent part
 	if s.pos < s.text.len && (s.text[s.pos] == `e` || s.text[s.pos] == `E`) {
 		exp_pos := s.pos
@@ -931,6 +1000,13 @@ fn (mut s Scanner) number() {
 			s.pos = exp_pos
 		}
 	}
+	
+	// Check for imaginary suffix
+	if s.pos < s.text.len && (s.text[s.pos] == `i` || s.text[s.pos] == `I`) {
+		s.pos++
+	}
+
+}
 }
 
 @[inline]
@@ -1028,6 +1104,13 @@ fn (mut s Scanner) number() {
 		}
 	}
 	
+	// Check for imaginary suffix
+	if s.pos < s.text.len && (s.text[s.pos] == `i` || s.text[s.pos] == `I`) {
+		s.pos++
+	}
+
+}
+	
 	// Check for exponent part
 	if s.pos < s.text.len && (s.text[s.pos] == `e` || s.text[s.pos] == `E`) {
 		exp_pos := s.pos
@@ -1049,6 +1132,13 @@ fn (mut s Scanner) number() {
 			s.pos = exp_pos
 		}
 	}
+	
+	// Check for imaginary suffix
+	if s.pos < s.text.len && (s.text[s.pos] == `i` || s.text[s.pos] == `I`) {
+		s.pos++
+	}
+
+}
 }
 
 @[inline]
@@ -1152,6 +1242,13 @@ fn (mut s Scanner) number() {
 		}
 	}
 	
+	// Check for imaginary suffix
+	if s.pos < s.text.len && (s.text[s.pos] == `i` || s.text[s.pos] == `I`) {
+		s.pos++
+	}
+
+}
+	
 	// Check for exponent part
 	if s.pos < s.text.len && (s.text[s.pos] == `e` || s.text[s.pos] == `E`) {
 		exp_pos := s.pos
@@ -1173,6 +1270,13 @@ fn (mut s Scanner) number() {
 			s.pos = exp_pos
 		}
 	}
+	
+	// Check for imaginary suffix
+	if s.pos < s.text.len && (s.text[s.pos] == `i` || s.text[s.pos] == `I`) {
+		s.pos++
+	}
+
+}
 }
 
 @[inline]
@@ -1273,6 +1377,13 @@ fn (mut s Scanner) number() {
 		}
 	}
 	
+	// Check for imaginary suffix
+	if s.pos < s.text.len && (s.text[s.pos] == `i` || s.text[s.pos] == `I`) {
+		s.pos++
+	}
+
+}
+	
 	// Check for exponent part
 	if s.pos < s.text.len && (s.text[s.pos] == `e` || s.text[s.pos] == `E`) {
 		exp_pos := s.pos
@@ -1294,6 +1405,13 @@ fn (mut s Scanner) number() {
 			s.pos = exp_pos
 		}
 	}
+	
+	// Check for imaginary suffix
+	if s.pos < s.text.len && (s.text[s.pos] == `i` || s.text[s.pos] == `I`) {
+		s.pos++
+	}
+
+}
 }
 
 @[inline]

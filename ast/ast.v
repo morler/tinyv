@@ -7,7 +7,7 @@ pub type Expr = ArrayInit | BoolLiteral | Cast | CharLiteral | Ident | If | Inde
 	| Infix | List | Match | NumberLiteral | ParExpr | Prefix | Selector | StringLiteral
 	| StructInit
 pub type Stmt =  Assign | Block | ConstDecl | EnumDecl | ExprStmt | FlowControl | FnDecl
-	| For | Import | Module | Return | StructDecl | TypeDecl
+	| For | Go | Defer | Asm | Goto | LabeledStmt | Import | Module | Return | StructDecl | TypeDecl
 
 pub struct ArrayInit {
 pub:
@@ -39,11 +39,24 @@ pub:
 }
 
 pub struct ConstDecl {
-	
+	is_public bool
+	fields []ConstField
+}
+
+pub struct ConstField {
+	name string
+	expr Expr
 }
 
 pub struct EnumDecl {
-	
+	is_public bool
+	name string
+	fields []EnumField
+}
+
+pub struct EnumField {
+	name string
+	val ?Expr
 }
 
 pub struct ExprStmt {
@@ -90,6 +103,9 @@ pub struct Index {
 }
 
 pub struct Match {
+	expr Expr
+	cases []MatchCase
+	else_stmts []Stmt
 }
 
 pub struct Module {
@@ -124,14 +140,42 @@ pub struct StringLiteral {
 }
 
 pub struct StructDecl {
-	
+	is_public bool
+	name string
+	fields []StructField
+}
+
+pub struct StructField {
+	is_pub bool
+	is_mut bool
+	name string
+	is_embed bool
+	typ Expr
+	default_val ?Expr
 }
 
 pub struct StructInit {
 	
 }
 
-pub struct TypeDecl {
-	
+pub struct Go {
+	stmt Stmt
+}
+
+pub struct Defer {
+	stmt Stmt
+}
+
+pub struct Asm {
+	body string
+}
+
+pub struct Goto {
+	label string
+}
+
+pub struct LabeledStmt {
+	label string
+	stmt Stmt
 }
 
