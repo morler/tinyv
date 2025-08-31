@@ -22,7 +22,7 @@ Based on the project status and code review, here are the key areas that need wo
 ## 3. Parser - Statements (`stmt` function)
 
 - [x] Implement parsing for `if` statements.
-- [ ] Implement parsing for `switch` statements.
+- [x] Implement parsing for `switch` statements.
 - [x] Implement parsing for `match` expressions/statements (more robustly than current).
 - [x] Implement parsing for `go` and `defer` statements.
 - [x] Implement parsing for `asm` blocks.

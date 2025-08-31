@@ -710,7 +710,7 @@ pub fn (mut p Parser) parse_switch() ast.Stmt {
 			}
 			p.expect(.colon)
 			mut stmts := []ast.Stmt{}
-			for p.tok != .rcbr && p.tok != .key_case && p.tok != .key_default {
+			for p.tok != .rcbr && !(p.tok == .name && p.scanner.lit in ['case', 'default']) {
 				stmts << p.stmt()
 			}
 			cases << ast.SwitchCase{
@@ -721,7 +721,7 @@ pub fn (mut p Parser) parse_switch() ast.Stmt {
 		} else if p.tok == .name && p.scanner.lit == 'default' {
 			p.next()
 			p.expect(.colon)
-			for p.tok != .rcbr {
+			for p.tok != .rcbr && !(p.tok == .name && p.scanner.lit in ['case', 'default']) {
 				default_stmts << p.stmt()
 			}
 		} else {
@@ -732,6 +732,7 @@ pub fn (mut p Parser) parse_switch() ast.Stmt {
 	return ast.Switch{
 		cond: cond
 		cases: cases
+		default_stmts: default_stmts
 	}
 }
 
