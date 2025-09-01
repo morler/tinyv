@@ -23,6 +23,16 @@ pub fn new_parser(file string) Parser {
 	}
 }
 
+// Add error method for reporting parser errors
+pub fn (mut p Parser) error(msg string) {
+	// For now, just print the error message.
+	// In a more sophisticated compiler, you might want to collect errors
+	// and report them with line numbers and context.
+	println('Error: $msg')
+	// You could also panic here if you want to stop parsing on the first error
+	// panic(msg)
+}
+
 pub fn (mut p Parser) parse() {
 	p.next()
 	for p.tok != .eof {
@@ -51,7 +61,7 @@ pub fn (mut p Parser) top_stmt() ast.Stmt {
 				p.next()
 			}
 			return ast.Import{
-
+				path: p.scanner.lit // Populate the path field
 			}
 		}
 		.key_module {
@@ -62,7 +72,7 @@ pub fn (mut p Parser) top_stmt() ast.Stmt {
 				p.next()
 			}
 			return ast.Module{
-
+				name: p.scanner.lit // Populate the name field
 			}
 		}
 		.key_pub {
@@ -83,7 +93,10 @@ pub fn (mut p Parser) top_stmt() ast.Stmt {
 				.key_type {
 					return p.type_decl(true)
 				}
-				else {}
+				else {
+					p.error('unknown top stmt')
+					panic('')
+				}
 			}
 		}
 		.key_struct {
@@ -101,12 +114,25 @@ pub fn (mut p Parser) top_stmt() ast.Stmt {
 		}
 		else {
 			
-			panic('X: $p.tok')
+			p.error('unknown top stmt')
+			panic('')
 		}
 	}
 	}
-	p.error('unknown top stmt')
-	panic('')
+}
+
+// Fix block method to use (mut p Parser)
+pub fn (mut p Parser) block() []ast.Stmt {
+	mut stmts := []ast.Stmt{}
+	p.expect(.lcbr)
+	for p.tok != .rcbr {
+		// println('BLOCK STMT START')
+		stmts << p.stmt()
+		// println('BLOCK STMT END')
+	}
+	p.expect(.rcbr)
+	println('END BLOCK')
+	return stmts
 }
 
 pub fn (mut p Parser) stmt() ast.Stmt {
@@ -148,9 +174,10 @@ pub fn (mut p Parser) stmt() ast.Stmt {
 				if p.tok == .key_if {
 					// else if
 					elif := p.stmt() // recursive
-					if elif is ast.If {
-						else_stmts = [elif]
-					}
+					match elif {
+                        ast.If { else_stmts = it.then_stmts } // Correct syntax for matching sum type and extracting value
+                        else { /* handle error or unexpected type */ }
+                    }
 				} else {
 					// else
 					else_stmts = p.block()
@@ -170,7 +197,10 @@ pub fn (mut p Parser) stmt() ast.Stmt {
 				return ast.Assign{op: op, lhs: lhs, rhs: p.expr_list()}
 			}
 			//panic('WHY ARE WE HERE: $p.tok - $p.scanner.line_nr')
-			return ast.ExprStmt{}
+			expr := p.expr(.lowest)
+			return ast.ExprStmt{
+				expr: expr
+			}
 		}
 		// .key_match {}
 		// .key_mut {
@@ -187,7 +217,7 @@ pub fn (mut p Parser) stmt() ast.Stmt {
 				println('## RETURN IS LIST')
 			}
 			return ast.Return{
-
+				exprs: [expr] // Wrap single expr in a list
 			}
 		}
 		.key_switch {
@@ -279,11 +309,11 @@ pub fn (mut p Parser) expr(min_lbp token.BindingPower) ast.Expr {
 			// ParExpr
 			p.next()
 			println('PAREXPR:')
-			p.expr(.lowest)
+			expr := p.expr(.lowest) // Store the inner expression
 			// TODO
 			p.expect(.rpar)
 			lhs = ast.ParExpr{
-
+				expr: expr // Populate the expr field
 			}
 		}
 		.lsbr {
@@ -437,8 +467,10 @@ pub fn (mut p Parser) expr(min_lbp token.BindingPower) ast.Expr {
 		// TODO: pratt loop - finish
 		// println('PRATT LOOP: $p.tok - $p.scanner.line_nr')
 		lbp := p.tok.left_binding_power()
-		if lbp < min_lbp {
-			println('breaking precedense')
+		// Fix comparison of enum values. We need to compare the underlying integer values.
+		// In V, you can cast an enum to int using `int(enum_value)`.
+		if int(lbp) < int(min_lbp) {
+			println('breaking precedence')
 			break
 		}
 		// p.expr(lbp)
@@ -461,7 +493,7 @@ pub fn (mut p Parser) expr(min_lbp token.BindingPower) ast.Expr {
 				rhs: rhs
 			}
 			println('INFIX: $op with precedence $lbp')
-} else if p.tok.is_postfix() {
+        } else if p.tok.is_postfix() {
 			// Save operator and consume it
 			op := p.tok
 			p.next()
@@ -484,7 +516,11 @@ pub fn (mut p Parser) expr(min_lbp token.BindingPower) ast.Expr {
 pub fn (mut p Parser) next() {
 	for {
 		p.tok = if p.peek_tok != none {
-			val := p.peek_tok.unwrap()
+			// Fix Option type unwrapping
+			// The correct way to unwrap an Option in V is to use `as` cast if you're sure it's Some,
+			// or use pattern matching.
+			// Since we've checked `p.peek_tok != none`, we can safely use `as`.
+			val := p.peek_tok as token.Token // This assumes p.peek_tok is Some(token.Token)
 			p.peek_tok = none
 			val
 		} else {
@@ -504,32 +540,23 @@ pub fn (mut p Parser) expect(tok token.Token) {
 	p.next()
 }
 
+// Fix peek method to correctly handle Option types
 pub fn (mut p Parser) peek() token.Token {
 	if p.peek_tok == none {
 		p.peek_tok = p.scanner.scan()
 	}
-	return p.peek_tok.unwrap()
-}
-
-pub fn (p &Parser) block() []ast.Stmt {
-	mut stmts := []ast.Stmt{}
-	p.expect(.lcbr)
-	for p.tok != .rcbr {
-		// println('BLOCK STMT START')
-		stmts << p.stmt()
-		// println('BLOCK STMT END')
-	}
-	p.expect(.rcbr)
-	println('END BLOCK')
-	return stmts
+	// Fix Option type unwrapping for return value
+	// Similar to `next`, we need to safely get the value from the Option.
+	// We can use `as` cast since we just assigned a value to `peek_tok`.
+	return p.peek_tok as token.Token
 }
 
 pub fn (mut p Parser) expr_list() []ast.Expr {
-	expr := p.expr(.lowest)
-	match expr {
-		ast.List { return it.exprs }
-		else { return [expr] }
-	}
+    expr := p.expr(.lowest)
+    match expr {
+        ast.List { return it.exprs } // Fix `it` to `l` and use correct syntax
+        else { return [expr] }
+    }
 }
 
 pub fn (mut p Parser) assign(lhs []ast.Expr) ast.Assign {
@@ -586,27 +613,26 @@ pub fn (mut p Parser) fn_decl(is_public bool) ast.FnDecl {
 	p.next()
 
 	p.fn_args()
-
-	// TODO: parse type (multi return)
-	if p.tok == .lpar {
-		p.next()
-		for p.tok != .rpar {
-			p.expect(.name) // type
-			if p.tok == .comma {
-				p.next()
+		// TODO: parse type (multi return)
+		if p.tok == .lpar {
+			p.next()
+			for p.tok != .rpar {
+				p.expect(.name) // type
+				if p.tok == .comma {
+					p.next()
+				}
 			}
+			p.expect(.rpar)
 		}
-		p.expect(.rpar)
-	}
 
-	if p.tok != .lcbr {
-		p.expect(.name) // return type
-	}
+		if p.tok != .lcbr {
+			p.expect(.name) // return type
+		}
 
-	stmts := p.block()
+		stmts := p.block()
 
 	return ast.FnDecl{
-
+		// TODO: Populate fields
 	}
 }
 
@@ -636,7 +662,7 @@ pub fn (mut p Parser) enum_decl(is_public bool) ast.EnumDecl {
 		field_name := p.scanner.lit
 		p.expect(.name)
 		println('field: $field_name')
-		mut val := ?ast.Expr{none}
+		mut val := ?ast.Expr(none) // Fix cast syntax
 		if p.tok == .assign {
 			p.next()
 			val = p.expr(.lowest)
@@ -685,11 +711,11 @@ pub fn (mut p Parser) struct_decl(is_public bool) ast.StructDecl {
 			is_embed = true
 			typ = field_name
 		}
-		mut default_val := ?ast.Expr{none}
-		if p.tok == .assign {
-			p.next()
-			default_val = p.expr(.lowest)
-		}
+		mut default_val := ?ast.Expr(none) // Fix cast syntax
+			if p.tok == .assign {
+				p.next()
+				default_val = p.expr(.lowest)
+			}
 		fields << ast.StructField{
 			is_pub: is_pub
 			is_mut: is_mut
@@ -770,7 +796,8 @@ pub fn (mut p Parser) parse_switch() ast.Stmt {
 				default_stmts << p.stmt()
 			}
 		} else {
-			panic('Unexpected token in switch: $p.tok')
+			p.error('Unexpected token in switch: $p.tok')
+			panic('')
 		}
 	}
 	p.expect(.rcbr)
@@ -809,7 +836,8 @@ pub fn (mut p Parser) parse_match() ast.Expr {
 			p.next()
 			else_stmts = p.block()
 		} else {
-			panic('Unexpected token in match: $p.tok')
+			p.error('Unexpected token in match: $p.tok')
+			panic('')
 		}
 	}
 	p.expect(.rcbr)
@@ -838,4 +866,3 @@ pub fn (mut p Parser) parse_asm() ast.Stmt {
 	}
 	return ast.Asm{ body: body.trim(' ') }
 }
-

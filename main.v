@@ -17,7 +17,7 @@ fn main() {
 	mut text := os.read_file(file) or {
 		panic('error reading $file')
 	}
-	s := scanner.new_scanner(text)
+	mut s := scanner.new_scanner(text)
     t0 := time.ticks()
 	for {
 		kind := s.scan()

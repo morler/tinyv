@@ -16,7 +16,6 @@ pub fn new_scanner(text string) &Scanner {
 	return &Scanner{
 		line_nr: 1
 		text: text
-		// tokens: tokens
 		had_str_inter: false
 	}
 }
@@ -31,7 +30,7 @@ pub struct Token{
 // NOTE: scan/scan0 was split in case i choose to cache all tokens / peek
 pub fn (mut s Scanner) scan() token.Token {
 	s.whitespace()
-	start_pos := s.pos
+	// start_pos := s.pos // Marked as unused, commented out
 	tok := s.scan0()
 	// s.tokens << Token{
 	// 	kind: tok,
@@ -43,18 +42,14 @@ pub fn (mut s Scanner) scan() token.Token {
 }
 
 pub fn (mut s Scanner) scan0() token.Token {
-	// s.whitespace()
-	// if s.pos >= s.text.len-1 {
 	if s.pos == s.text.len {
 		s.lit = ''
 		return .eof
 	}
-	// defer {
-	// 	s.lit = s.text[start_pos..s.pos]
-	// }
-	// s.lit = ''
+	
 	c := s.text[s.pos]
 	start_pos := s.pos
+	
 	// comments
 	if c == `/` {
 		s.comment()
@@ -67,7 +62,7 @@ pub fn (mut s Scanner) scan0() token.Token {
 		s.lit = s.text[start_pos..s.pos]
 		return .number
 	}
-	// name
+	// name/keyword/none
 	else if (c >= `a` && c <= `z`) || (c >= `A` && c <= `Z`) || c == `_` {
 		s.name()
 		s.lit = s.text[start_pos..s.pos]
@@ -75,13 +70,28 @@ pub fn (mut s Scanner) scan0() token.Token {
 		if tok != .unknown {
 			return tok
 		}
+		// Check for 'none' keyword specifically if not in key_tokens (though it should be)
+		// This is a safeguard.
+		if s.lit == 'none' {
+			return .key_none
+		}
 		return .name
 	}
 	// string
 	else if c == `"` {
 		s.string_literal()
 		s.lit = s.text[start_pos..s.pos]
+		if s.had_str_inter {
+			s.had_str_inter = false // Reset flag
+			return .str_inter
+		}
 		return .string
+	}
+	// raw string
+	else if c == `r` && s.pos+1 < s.text.len && (s.text[s.pos+1] == `"` || s.text[s.pos+1] == `'`) {
+		s.raw_string_literal()
+		s.lit = s.text[start_pos..s.pos]
+		return .str_raw
 	}
 	// rune
 	else if c == `'` {
@@ -96,10 +106,10 @@ pub fn (mut s Scanner) scan0() token.Token {
 			s.pos++
 		}
 		s.pos++
-		// s.lit = c.str()
 		s.lit = s.text[start_pos..s.pos]
 		return .chartoken
 	}
+	
 	s.lit = ''
 	s.pos++
 	match c {
@@ -254,7 +264,7 @@ pub fn (mut s Scanner) scan0() token.Token {
 		}
 		`#` { return .hash }
 		`,` { return .comma }
-		// `@` { return .at }
+		`@` { return .at }
 		`;` { return .semicolon }
 		`{` { return .lcbr }
 		`}` { return .rcbr }
@@ -333,155 +343,31 @@ fn(mut s Scanner) comment() {
 // Helper function to scan string interpolation parts
 fn (mut s Scanner) scan_interpolation(end_char rune) bool {
 	// Check for $ which starts interpolation
-	if s.pos < s.text.len && s.text[s.pos] == '
-
-fn (mut s Scanner) number() {
-	// Check for special number formats (0b, 0x, 0o)
-	if s.text[s.pos] == `0` {
-		s.pos++
-		if s.pos >= s.text.len {
-			return // Just "0"
-		}
-		c := s.text[s.pos]
-		// 0b (binary)
-		if c in [`b`, `B`] {
-			s.pos++
-			for s.pos < s.text.len && s.text[s.pos] in [`0`, `1`] {
-				s.pos++
-			}
-			return
-		}
-		// 0x (hex)
-		else if c in [`x`, `X`] {
-			s.pos++
-			for s.pos < s.text.len {
-				c2 := s.text[s.pos]
-				if (c2 >= `0` && c2 <= `9`) || (c2 >= `a` && c2 <= `z`) || (c2 >= `A` && c2 <= `Z`) {
-					s.pos++
-					continue
-				}
-				return
-			}
-			return
-		}
-		// 0o (octal)
-		else if c in [`o`, `O`] {
-			s.pos++
-			for s.pos < s.text.len {
-				c2 := s.text[s.pos]
-				if c2 >= `0` && c2 <= `7` {
-					s.pos++
-					continue
-				}
-				return
-			}
-			return
-		}
-		// If it's just a plain 0 followed by non-special character, continue with decimal parsing
-		// We decrement pos to re-process the '0' as part of the decimal number
-		s.pos--
-	}
-	
-	// Parse integer part
-	for s.pos < s.text.len {
-		c := s.text[s.pos]
-		if c >= `0` && c <= `9` {
-			s.pos++
-			continue
-		}
-		break
-	}
-	
-	// Check for fractional part
-	if s.pos < s.text.len && s.text[s.pos] == `.` {
-		// Make sure there's a digit after the dot to distinguish from range operator (..)
-		if s.pos+1 < s.text.len && s.text[s.pos+1] >= `0` && s.text[s.pos+1] <= `9` {
-			s.pos++ // skip '.'
-			// Parse fractional part
-			for s.pos < s.text.len {
-				c := s.text[s.pos]
-				if c >= `0` && c <= `9` {
-					s.pos++
-					continue
-				}
-				break
-			}
-		}
-	}
-	
-	// Check for imaginary suffix
-	if s.pos < s.text.len && (s.text[s.pos] == `i` || s.text[s.pos] == `I`) {
-		s.pos++
-	}
-
-}
-	
-	// Check for exponent part
-	if s.pos < s.text.len && (s.text[s.pos] == `e` || s.text[s.pos] == `E`) {
-		exp_pos := s.pos
-		s.pos++ // skip 'e' or 'E'
-		
-		// Optional sign
-		if s.pos < s.text.len && (s.text[s.pos] == `+` || s.text[s.pos] == `-`) {
-			s.pos++
-		}
-		
-		// Must have at least one digit in exponent
-		exponent_start := s.pos
-		for s.pos < s.text.len && s.text[s.pos] >= `0` && s.text[s.pos] <= `9` {
-			s.pos++
-		}
-		
-		// If no digits were found in exponent, backtrack
-		if s.pos == exponent_start {
-			s.pos = exp_pos
-		}
-	}
-	
-	// Check for imaginary suffix
-	if s.pos < s.text.len && (s.text[s.pos] == `i` || s.text[s.pos] == `I`) {
-		s.pos++
-	}
-
-}
-}
-
-@[inline]
-fn (mut s Scanner) name() {
-	for s.pos < s.text.len {
-		c := s.text[s.pos]
-		if (c >= `0` && c <= `9`) || (c >= `a` && c <= `z`) || (c >= `A` && c <= `Z`) || c == `_` {
-			s.pos++
-			continue
-		}
-		break
-	}
-}
- {
+	if s.pos < s.text.len && s.text[s.pos] == `$` {
 		s.pos++
 		// Simple case: $name
-		if s.pos < s.text.len && ((s.text[s.pos] >= 'a' && s.text[s.pos] <= 'z') || 
-								  (s.text[s.pos] >= 'A' && s.text[s.pos] <= 'Z') || 
-								  s.text[s.pos] == '_') {
+		if s.pos < s.text.len && ((s.text[s.pos] >= `a` && s.text[s.pos] <= `z`) || 
+								  (s.text[s.pos] >= `A` && s.text[s.pos] <= `Z`) || 
+								  s.text[s.pos] == `_`) {
 			s.name() // Advance past the identifier
 			return true
 		}
 		// Complex case: ${...}
-		if s.pos < s.text.len && s.text[s.pos] == '{' {
+		if s.pos < s.text.len && s.text[s.pos] == `{` {
 			s.pos++ // Skip '{'
-			brace_count := 1
+			mut brace_count := 1
 			for s.pos < s.text.len && brace_count > 0 {
-				if s.text[s.pos] == '{' {
+				if s.text[s.pos] == `{` {
 					brace_count++
-				} else if s.text[s.pos] == '}' {
+				} else if s.text[s.pos] == `}` {
 					brace_count--
 				}
 				// Handle nested strings or chars that might contain { or }
-				else if s.text[s.pos] == '"' || s.text[s.pos] == '\'' || s.text[s.pos] == '`' {
+				else if s.text[s.pos] == '"' || s.text[s.pos] == ''' || s.text[s.pos] == '`' {
 					str_end := s.text[s.pos]
 					s.pos++
 					for s.pos < s.text.len && s.text[s.pos] != str_end {
-						if s.text[s.pos] == '\\' && s.pos+1 < s.text.len {
+						if s.text[s.pos] == `\\` && s.pos+1 < s.text.len {
 							s.pos++ // Skip escaped character
 						}
 						s.pos++
@@ -497,380 +383,7 @@ fn (mut s Scanner) name() {
 			// For now, we'll treat it as end of string or error later
 			return true
 		}
-		// If '
-
-fn (mut s Scanner) number() {
-	// Check for special number formats (0b, 0x, 0o)
-	if s.text[s.pos] == `0` {
-		s.pos++
-		if s.pos >= s.text.len {
-			return // Just "0"
-		}
-		c := s.text[s.pos]
-		// 0b (binary)
-		if c in [`b`, `B`] {
-			s.pos++
-			for s.pos < s.text.len && s.text[s.pos] in [`0`, `1`] {
-				s.pos++
-			}
-			return
-		}
-		// 0x (hex)
-		else if c in [`x`, `X`] {
-			s.pos++
-			for s.pos < s.text.len {
-				c2 := s.text[s.pos]
-				if (c2 >= `0` && c2 <= `9`) || (c2 >= `a` && c2 <= `z`) || (c2 >= `A` && c2 <= `Z`) {
-					s.pos++
-					continue
-				}
-				return
-			}
-			return
-		}
-		// 0o (octal)
-		else if c in [`o`, `O`] {
-			s.pos++
-			for s.pos < s.text.len {
-				c2 := s.text[s.pos]
-				if c2 >= `0` && c2 <= `7` {
-					s.pos++
-					continue
-				}
-				return
-			}
-			return
-		}
-		// If it's just a plain 0 followed by non-special character, continue with decimal parsing
-		// We decrement pos to re-process the '0' as part of the decimal number
-		s.pos--
-	}
-	
-	// Parse integer part
-	for s.pos < s.text.len {
-		c := s.text[s.pos]
-		if c >= `0` && c <= `9` {
-			s.pos++
-			continue
-		}
-		break
-	}
-	
-	// Check for fractional part
-	if s.pos < s.text.len && s.text[s.pos] == `.` {
-		// Make sure there's a digit after the dot to distinguish from range operator (..)
-		if s.pos+1 < s.text.len && s.text[s.pos+1] >= `0` && s.text[s.pos+1] <= `9` {
-			s.pos++ // skip '.'
-			// Parse fractional part
-			for s.pos < s.text.len {
-				c := s.text[s.pos]
-				if c >= `0` && c <= `9` {
-					s.pos++
-					continue
-				}
-				break
-			}
-		}
-	}
-	
-	// Check for imaginary suffix
-	if s.pos < s.text.len && (s.text[s.pos] == `i` || s.text[s.pos] == `I`) {
-		s.pos++
-	}
-
-}
-	
-	// Check for exponent part
-	if s.pos < s.text.len && (s.text[s.pos] == `e` || s.text[s.pos] == `E`) {
-		exp_pos := s.pos
-		s.pos++ // skip 'e' or 'E'
-		
-		// Optional sign
-		if s.pos < s.text.len && (s.text[s.pos] == `+` || s.text[s.pos] == `-`) {
-			s.pos++
-		}
-		
-		// Must have at least one digit in exponent
-		exponent_start := s.pos
-		for s.pos < s.text.len && s.text[s.pos] >= `0` && s.text[s.pos] <= `9` {
-			s.pos++
-		}
-		
-		// If no digits were found in exponent, backtrack
-		if s.pos == exponent_start {
-			s.pos = exp_pos
-		}
-	}
-	
-	// Check for imaginary suffix
-	if s.pos < s.text.len && (s.text[s.pos] == `i` || s.text[s.pos] == `I`) {
-		s.pos++
-	}
-
-}
-}
-
-@[inline]
-fn (mut s Scanner) name() {
-	for s.pos < s.text.len {
-		c := s.text[s.pos]
-		if (c >= `0` && c <= `9`) || (c >= `a` && c <= `z`) || (c >= `A` && c <= `Z`) || c == `_` {
-			s.pos++
-			continue
-		}
-		break
-	}
-}
- is not followed by a name or '{', it's just a literal '
-
-fn (mut s Scanner) number() {
-	// Check for special number formats (0b, 0x, 0o)
-	if s.text[s.pos] == `0` {
-		s.pos++
-		if s.pos >= s.text.len {
-			return // Just "0"
-		}
-		c := s.text[s.pos]
-		// 0b (binary)
-		if c in [`b`, `B`] {
-			s.pos++
-			for s.pos < s.text.len && s.text[s.pos] in [`0`, `1`] {
-				s.pos++
-			}
-			return
-		}
-		// 0x (hex)
-		else if c in [`x`, `X`] {
-			s.pos++
-			for s.pos < s.text.len {
-				c2 := s.text[s.pos]
-				if (c2 >= `0` && c2 <= `9`) || (c2 >= `a` && c2 <= `z`) || (c2 >= `A` && c2 <= `Z`) {
-					s.pos++
-					continue
-				}
-				return
-			}
-			return
-		}
-		// 0o (octal)
-		else if c in [`o`, `O`] {
-			s.pos++
-			for s.pos < s.text.len {
-				c2 := s.text[s.pos]
-				if c2 >= `0` && c2 <= `7` {
-					s.pos++
-					continue
-				}
-				return
-			}
-			return
-		}
-		// If it's just a plain 0 followed by non-special character, continue with decimal parsing
-		// We decrement pos to re-process the '0' as part of the decimal number
-		s.pos--
-	}
-	
-	// Parse integer part
-	for s.pos < s.text.len {
-		c := s.text[s.pos]
-		if c >= `0` && c <= `9` {
-			s.pos++
-			continue
-		}
-		break
-	}
-	
-	// Check for fractional part
-	if s.pos < s.text.len && s.text[s.pos] == `.` {
-		// Make sure there's a digit after the dot to distinguish from range operator (..)
-		if s.pos+1 < s.text.len && s.text[s.pos+1] >= `0` && s.text[s.pos+1] <= `9` {
-			s.pos++ // skip '.'
-			// Parse fractional part
-			for s.pos < s.text.len {
-				c := s.text[s.pos]
-				if c >= `0` && c <= `9` {
-					s.pos++
-					continue
-				}
-				break
-			}
-		}
-	}
-	
-	// Check for imaginary suffix
-	if s.pos < s.text.len && (s.text[s.pos] == `i` || s.text[s.pos] == `I`) {
-		s.pos++
-	}
-
-}
-	
-	// Check for exponent part
-	if s.pos < s.text.len && (s.text[s.pos] == `e` || s.text[s.pos] == `E`) {
-		exp_pos := s.pos
-		s.pos++ // skip 'e' or 'E'
-		
-		// Optional sign
-		if s.pos < s.text.len && (s.text[s.pos] == `+` || s.text[s.pos] == `-`) {
-			s.pos++
-		}
-		
-		// Must have at least one digit in exponent
-		exponent_start := s.pos
-		for s.pos < s.text.len && s.text[s.pos] >= `0` && s.text[s.pos] <= `9` {
-			s.pos++
-		}
-		
-		// If no digits were found in exponent, backtrack
-		if s.pos == exponent_start {
-			s.pos = exp_pos
-		}
-	}
-	
-	// Check for imaginary suffix
-	if s.pos < s.text.len && (s.text[s.pos] == `i` || s.text[s.pos] == `I`) {
-		s.pos++
-	}
-
-}
-}
-
-@[inline]
-fn (mut s Scanner) name() {
-	for s.pos < s.text.len {
-		c := s.text[s.pos]
-		if (c >= `0` && c <= `9`) || (c >= `a` && c <= `z`) || (c >= `A` && c <= `Z`) || c == `_` {
-			s.pos++
-			continue
-		}
-		break
-	}
-}
-
-		// We've already advanced past '
-
-fn (mut s Scanner) number() {
-	// Check for special number formats (0b, 0x, 0o)
-	if s.text[s.pos] == `0` {
-		s.pos++
-		if s.pos >= s.text.len {
-			return // Just "0"
-		}
-		c := s.text[s.pos]
-		// 0b (binary)
-		if c in [`b`, `B`] {
-			s.pos++
-			for s.pos < s.text.len && s.text[s.pos] in [`0`, `1`] {
-				s.pos++
-			}
-			return
-		}
-		// 0x (hex)
-		else if c in [`x`, `X`] {
-			s.pos++
-			for s.pos < s.text.len {
-				c2 := s.text[s.pos]
-				if (c2 >= `0` && c2 <= `9`) || (c2 >= `a` && c2 <= `z`) || (c2 >= `A` && c2 <= `Z`) {
-					s.pos++
-					continue
-				}
-				return
-			}
-			return
-		}
-		// 0o (octal)
-		else if c in [`o`, `O`] {
-			s.pos++
-			for s.pos < s.text.len {
-				c2 := s.text[s.pos]
-				if c2 >= `0` && c2 <= `7` {
-					s.pos++
-					continue
-				}
-				return
-			}
-			return
-		}
-		// If it's just a plain 0 followed by non-special character, continue with decimal parsing
-		// We decrement pos to re-process the '0' as part of the decimal number
-		s.pos--
-	}
-	
-	// Parse integer part
-	for s.pos < s.text.len {
-		c := s.text[s.pos]
-		if c >= `0` && c <= `9` {
-			s.pos++
-			continue
-		}
-		break
-	}
-	
-	// Check for fractional part
-	if s.pos < s.text.len && s.text[s.pos] == `.` {
-		// Make sure there's a digit after the dot to distinguish from range operator (..)
-		if s.pos+1 < s.text.len && s.text[s.pos+1] >= `0` && s.text[s.pos+1] <= `9` {
-			s.pos++ // skip '.'
-			// Parse fractional part
-			for s.pos < s.text.len {
-				c := s.text[s.pos]
-				if c >= `0` && c <= `9` {
-					s.pos++
-					continue
-				}
-				break
-			}
-		}
-	}
-	
-	// Check for imaginary suffix
-	if s.pos < s.text.len && (s.text[s.pos] == `i` || s.text[s.pos] == `I`) {
-		s.pos++
-	}
-
-}
-	
-	// Check for exponent part
-	if s.pos < s.text.len && (s.text[s.pos] == `e` || s.text[s.pos] == `E`) {
-		exp_pos := s.pos
-		s.pos++ // skip 'e' or 'E'
-		
-		// Optional sign
-		if s.pos < s.text.len && (s.text[s.pos] == `+` || s.text[s.pos] == `-`) {
-			s.pos++
-		}
-		
-		// Must have at least one digit in exponent
-		exponent_start := s.pos
-		for s.pos < s.text.len && s.text[s.pos] >= `0` && s.text[s.pos] <= `9` {
-			s.pos++
-		}
-		
-		// If no digits were found in exponent, backtrack
-		if s.pos == exponent_start {
-			s.pos = exp_pos
-		}
-	}
-	
-	// Check for imaginary suffix
-	if s.pos < s.text.len && (s.text[s.pos] == `i` || s.text[s.pos] == `I`) {
-		s.pos++
-	}
-
-}
-}
-
-@[inline]
-fn (mut s Scanner) name() {
-	for s.pos < s.text.len {
-		c := s.text[s.pos]
-		if (c >= `0` && c <= `9`) || (c >= `a` && c <= `z`) || (c >= `A` && c <= `Z`) || c == `_` {
-			s.pos++
-			continue
-		}
-		break
-	}
-}
-, so caller needs to handle this correctly
+		// If '$' is not followed by a name or '{', it's just a literal '$'
 		// For simplicity in this scanner, we'll just continue scanning normally
 		// The parser can deal with invalid interpolations
 	}
@@ -880,11 +393,11 @@ fn (mut s Scanner) name() {
 fn (mut s Scanner) string_literal() {
 	c := s.text[s.pos]
 	s.pos++
-	had_interpolation := false
+	mut had_interpolation := false
 	
 	for s.pos < s.text.len {
 		// Handle escape sequences
-		if s.text[s.pos] == '\\' {
+		if s.text[s.pos] == `\\` {
 			s.pos += 2
 			continue
 		}
@@ -896,131 +409,7 @@ fn (mut s Scanner) string_literal() {
 		}
 		
 		// Check for interpolation start
-		if s.text[s.pos] == '
-
-fn (mut s Scanner) number() {
-	// Check for special number formats (0b, 0x, 0o)
-	if s.text[s.pos] == `0` {
-		s.pos++
-		if s.pos >= s.text.len {
-			return // Just "0"
-		}
-		c := s.text[s.pos]
-		// 0b (binary)
-		if c in [`b`, `B`] {
-			s.pos++
-			for s.pos < s.text.len && s.text[s.pos] in [`0`, `1`] {
-				s.pos++
-			}
-			return
-		}
-		// 0x (hex)
-		else if c in [`x`, `X`] {
-			s.pos++
-			for s.pos < s.text.len {
-				c2 := s.text[s.pos]
-				if (c2 >= `0` && c2 <= `9`) || (c2 >= `a` && c2 <= `z`) || (c2 >= `A` && c2 <= `Z`) {
-					s.pos++
-					continue
-				}
-				return
-			}
-			return
-		}
-		// 0o (octal)
-		else if c in [`o`, `O`] {
-			s.pos++
-			for s.pos < s.text.len {
-				c2 := s.text[s.pos]
-				if c2 >= `0` && c2 <= `7` {
-					s.pos++
-					continue
-				}
-				return
-			}
-			return
-		}
-		// If it's just a plain 0 followed by non-special character, continue with decimal parsing
-		// We decrement pos to re-process the '0' as part of the decimal number
-		s.pos--
-	}
-	
-	// Parse integer part
-	for s.pos < s.text.len {
-		c := s.text[s.pos]
-		if c >= `0` && c <= `9` {
-			s.pos++
-			continue
-		}
-		break
-	}
-	
-	// Check for fractional part
-	if s.pos < s.text.len && s.text[s.pos] == `.` {
-		// Make sure there's a digit after the dot to distinguish from range operator (..)
-		if s.pos+1 < s.text.len && s.text[s.pos+1] >= `0` && s.text[s.pos+1] <= `9` {
-			s.pos++ // skip '.'
-			// Parse fractional part
-			for s.pos < s.text.len {
-				c := s.text[s.pos]
-				if c >= `0` && c <= `9` {
-					s.pos++
-					continue
-				}
-				break
-			}
-		}
-	}
-	
-	// Check for imaginary suffix
-	if s.pos < s.text.len && (s.text[s.pos] == `i` || s.text[s.pos] == `I`) {
-		s.pos++
-	}
-
-}
-	
-	// Check for exponent part
-	if s.pos < s.text.len && (s.text[s.pos] == `e` || s.text[s.pos] == `E`) {
-		exp_pos := s.pos
-		s.pos++ // skip 'e' or 'E'
-		
-		// Optional sign
-		if s.pos < s.text.len && (s.text[s.pos] == `+` || s.text[s.pos] == `-`) {
-			s.pos++
-		}
-		
-		// Must have at least one digit in exponent
-		exponent_start := s.pos
-		for s.pos < s.text.len && s.text[s.pos] >= `0` && s.text[s.pos] <= `9` {
-			s.pos++
-		}
-		
-		// If no digits were found in exponent, backtrack
-		if s.pos == exponent_start {
-			s.pos = exp_pos
-		}
-	}
-	
-	// Check for imaginary suffix
-	if s.pos < s.text.len && (s.text[s.pos] == `i` || s.text[s.pos] == `I`) {
-		s.pos++
-	}
-
-}
-}
-
-@[inline]
-fn (mut s Scanner) name() {
-	for s.pos < s.text.len {
-		c := s.text[s.pos]
-		if (c >= `0` && c <= `9`) || (c >= `a` && c <= `z`) || (c >= `A` && c <= `Z`) || c == `_` {
-			s.pos++
-			continue
-		}
-		break
-	}
-}
- {
+		if s.text[s.pos] == `$` {
 			// Attempt to scan interpolation
 			if s.scan_interpolation(c) {
 				had_interpolation = true
@@ -1028,279 +417,36 @@ fn (mut s Scanner) name() {
 				// or need to continue scanning the rest of the string
 				continue
 			}
-			// If scan_interpolation returned false, '
-
-fn (mut s Scanner) number() {
-	// Check for special number formats (0b, 0x, 0o)
-	if s.text[s.pos] == `0` {
-		s.pos++
-		if s.pos >= s.text.len {
-			return // Just "0"
-		}
-		c := s.text[s.pos]
-		// 0b (binary)
-		if c in [`b`, `B`] {
-			s.pos++
-			for s.pos < s.text.len && s.text[s.pos] in [`0`, `1`] {
-				s.pos++
-			}
-			return
-		}
-		// 0x (hex)
-		else if c in [`x`, `X`] {
-			s.pos++
-			for s.pos < s.text.len {
-				c2 := s.text[s.pos]
-				if (c2 >= `0` && c2 <= `9`) || (c2 >= `a` && c2 <= `z`) || (c2 >= `A` && c2 <= `Z`) {
-					s.pos++
-					continue
-				}
-				return
-			}
-			return
-		}
-		// 0o (octal)
-		else if c in [`o`, `O`] {
-			s.pos++
-			for s.pos < s.text.len {
-				c2 := s.text[s.pos]
-				if c2 >= `0` && c2 <= `7` {
-					s.pos++
-					continue
-				}
-				return
-			}
-			return
-		}
-		// If it's just a plain 0 followed by non-special character, continue with decimal parsing
-		// We decrement pos to re-process the '0' as part of the decimal number
-		s.pos--
-	}
-	
-	// Parse integer part
-	for s.pos < s.text.len {
-		c := s.text[s.pos]
-		if c >= `0` && c <= `9` {
-			s.pos++
-			continue
-		}
-		break
-	}
-	
-	// Check for fractional part
-	if s.pos < s.text.len && s.text[s.pos] == `.` {
-		// Make sure there's a digit after the dot to distinguish from range operator (..)
-		if s.pos+1 < s.text.len && s.text[s.pos+1] >= `0` && s.text[s.pos+1] <= `9` {
-			s.pos++ // skip '.'
-			// Parse fractional part
-			for s.pos < s.text.len {
-				c := s.text[s.pos]
-				if c >= `0` && c <= `9` {
-					s.pos++
-					continue
-				}
-				break
-			}
-		}
-	}
-	
-	// Check for imaginary suffix
-	if s.pos < s.text.len && (s.text[s.pos] == `i` || s.text[s.pos] == `I`) {
-		s.pos++
-	}
-
-}
-	
-	// Check for exponent part
-	if s.pos < s.text.len && (s.text[s.pos] == `e` || s.text[s.pos] == `E`) {
-		exp_pos := s.pos
-		s.pos++ // skip 'e' or 'E'
-		
-		// Optional sign
-		if s.pos < s.text.len && (s.text[s.pos] == `+` || s.text[s.pos] == `-`) {
-			s.pos++
-		}
-		
-		// Must have at least one digit in exponent
-		exponent_start := s.pos
-		for s.pos < s.text.len && s.text[s.pos] >= `0` && s.text[s.pos] <= `9` {
-			s.pos++
-		}
-		
-		// If no digits were found in exponent, backtrack
-		if s.pos == exponent_start {
-			s.pos = exp_pos
-		}
-	}
-	
-	// Check for imaginary suffix
-	if s.pos < s.text.len && (s.text[s.pos] == `i` || s.text[s.pos] == `I`) {
-		s.pos++
-	}
-
-}
-}
-
-@[inline]
-fn (mut s Scanner) name() {
-	for s.pos < s.text.len {
-		c := s.text[s.pos]
-		if (c >= `0` && c <= `9`) || (c >= `a` && c <= `z`) || (c >= `A` && c <= `Z`) || c == `_` {
-			s.pos++
-			continue
-		}
-		break
-	}
-}
- was not start of valid interpolation
+			// If scan_interpolation returned false, '$' was not start of valid interpolation
 			// Treat it as a literal character and continue
 		}
 		
 		s.pos++
 	}
 	
-	// If we found interpolation, return str_inter token, otherwise string token
-	// Note: This simplistic approach changes the token type for the whole string
-	// A more advanced scanner/parser would return multiple tokens or have a different strategy
-	// For now, this is sufficient to signal that the string contains interpolation
-	if had_interpolation {
-		// We cannot change the token here as the caller expects string_literal to process the whole string
-		// The detection of str_inter needs to happen at a higher level or the token needs to be set externally
-		// This implementation will keep the token as .string but the parser can re-check for '
+	// Set the flag to indicate if this string had interpolation
+	// The caller (scan0) will check this flag and return the appropriate token
+	s.had_str_inter = had_interpolation
+}
 
-fn (mut s Scanner) number() {
-	// Check for special number formats (0b, 0x, 0o)
-	if s.text[s.pos] == `0` {
+fn (mut s Scanner) raw_string_literal() {
+	// Expect to be called when s.pos is at 'r' and s.pos+1 is the quote character
+	if s.pos+1 >= s.text.len {
+		// Malformed raw string, just advance
 		s.pos++
-		if s.pos >= s.text.len {
-			return // Just "0"
-		}
-		c := s.text[s.pos]
-		// 0b (binary)
-		if c in [`b`, `B`] {
-			s.pos++
-			for s.pos < s.text.len && s.text[s.pos] in [`0`, `1`] {
-				s.pos++
-			}
-			return
-		}
-		// 0x (hex)
-		else if c in [`x`, `X`] {
-			s.pos++
-			for s.pos < s.text.len {
-				c2 := s.text[s.pos]
-				if (c2 >= `0` && c2 <= `9`) || (c2 >= `a` && c2 <= `z`) || (c2 >= `A` && c2 <= `Z`) {
-					s.pos++
-					continue
-				}
-				return
-			}
-			return
-		}
-		// 0o (octal)
-		else if c in [`o`, `O`] {
-			s.pos++
-			for s.pos < s.text.len {
-				c2 := s.text[s.pos]
-				if c2 >= `0` && c2 <= `7` {
-					s.pos++
-					continue
-				}
-				return
-			}
-			return
-		}
-		// If it's just a plain 0 followed by non-special character, continue with decimal parsing
-		// We decrement pos to re-process the '0' as part of the decimal number
-		s.pos--
+		return
 	}
+	quote_char := s.text[s.pos+1]
+	s.pos += 2 // Skip 'r' and the opening quote
 	
-	// Parse integer part
 	for s.pos < s.text.len {
-		c := s.text[s.pos]
-		if c >= `0` && c <= `9` {
+		if s.text[s.pos] == quote_char {
 			s.pos++
-			continue
+			break
 		}
-		break
-	}
-	
-	// Check for fractional part
-	if s.pos < s.text.len && s.text[s.pos] == `.` {
-		// Make sure there's a digit after the dot to distinguish from range operator (..)
-		if s.pos+1 < s.text.len && s.text[s.pos+1] >= `0` && s.text[s.pos+1] <= `9` {
-			s.pos++ // skip '.'
-			// Parse fractional part
-			for s.pos < s.text.len {
-				c := s.text[s.pos]
-				if c >= `0` && c <= `9` {
-					s.pos++
-					continue
-				}
-				break
-			}
-		}
-	}
-	
-	// Check for imaginary suffix
-	if s.pos < s.text.len && (s.text[s.pos] == `i` || s.text[s.pos] == `I`) {
 		s.pos++
 	}
-
-}
-	
-	// Check for exponent part
-	if s.pos < s.text.len && (s.text[s.pos] == `e` || s.text[s.pos] == `E`) {
-		exp_pos := s.pos
-		s.pos++ // skip 'e' or 'E'
-		
-		// Optional sign
-		if s.pos < s.text.len && (s.text[s.pos] == `+` || s.text[s.pos] == `-`) {
-			s.pos++
-		}
-		
-		// Must have at least one digit in exponent
-		exponent_start := s.pos
-		for s.pos < s.text.len && s.text[s.pos] >= `0` && s.text[s.pos] <= `9` {
-			s.pos++
-		}
-		
-		// If no digits were found in exponent, backtrack
-		if s.pos == exponent_start {
-			s.pos = exp_pos
-		}
-	}
-	
-	// Check for imaginary suffix
-	if s.pos < s.text.len && (s.text[s.pos] == `i` || s.text[s.pos] == `I`) {
-		s.pos++
-	}
-
-}
-}
-
-@[inline]
-fn (mut s Scanner) name() {
-	for s.pos < s.text.len {
-		c := s.text[s.pos]
-		if (c >= `0` && c <= `9`) || (c >= `a` && c <= `z`) || (c >= `A` && c <= `Z`) || c == `_` {
-			s.pos++
-			continue
-		}
-		break
-	}
-}
-
-		// and request re-tokenization if needed, or the scanner can be modified to be smarter
-		// about setting s.lit to indicate interpolation presence
-		// Let's modify s.lit to hint about interpolation for now
-		// Actually, the best place to set the token type is in scan0 based on had_interpolation
-		// But string_literal doesn't return a value. We need to communicate back.
-		// Let's add a flag to Scanner struct to indicate if last scanned string had interpolation
-		// This is getting complex. Let's simplify: we'll make scan_interpolation set a flag on the scanner
-		// and scan0 will check this flag after calling string_literal.
-		// Add `mut had_str_inter bool` to Scanner struct
-	}
+	// No escape sequences or interpolation in raw strings
 }
 
 fn (mut s Scanner) number() {
@@ -1382,8 +528,6 @@ fn (mut s Scanner) number() {
 		s.pos++
 	}
 
-}
-	
 	// Check for exponent part
 	if s.pos < s.text.len && (s.text[s.pos] == `e` || s.text[s.pos] == `E`) {
 		exp_pos := s.pos
@@ -1410,8 +554,6 @@ fn (mut s Scanner) number() {
 	if s.pos < s.text.len && (s.text[s.pos] == `i` || s.text[s.pos] == `I`) {
 		s.pos++
 	}
-
-}
 }
 
 @[inline]
@@ -1423,5 +565,17 @@ fn (mut s Scanner) name() {
 			continue
 		}
 		break
+	}
+}
+
+fn (mut s Scanner) rune_literal() {
+	s.pos++ // skip opening '
+	// Handle escape sequences if needed, though V runes are usually single characters
+	// For simplicity, we'll just scan until the closing '
+	for s.pos < s.text.len && s.text[s.pos] != `'` {
+		s.pos++
+	}
+	if s.pos < s.text.len {
+		s.pos++ // skip closing '
 	}
 }

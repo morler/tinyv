@@ -451,7 +451,7 @@ fn (mut c Checker) check_types(exp_type Type, got_type Type) bool {
 	return false
 }
 
-// Force cache invalidation - temp comment 2
+// Force cache invalidation - temp comment
 fn (mut c Checker) expr(expr ast.Expr) Type {
 	c.log('expr: ${expr.type_name()}')
 	match expr {

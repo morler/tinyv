@@ -1,202 +1,209 @@
-# TinyV 项目未完成功能与待办事项
+# TinyV Compiler Issues and Areas for Improvement
+*Last updated: September 2025*
 
-## 项目概况
+## Project Overview
+This document contains a comprehensive review of the TinyV compiler project - a simplified V language compiler focused on V language research and exploration. The project encountered multiple compilation issues on Windows, indicating incomplete AST node implementations, parser problems, and module organization issues.
 
-TinyV 是一个简化的 V 语言编译器研究项目，目前包含约 **29 个源文件**，总代码量约 **10,323 行**。项目遵循传统编译器架构，分为前端（词法分析、语法分析）、中端（类型检查、SSA IR 生成）和后端（代码生成）三个阶段。
+## Critical Build Failures
+### 1. Compilation Errors
+- **Status:** ❌ Critical failure - cannot build on Windows
+- **Location:** Build command `v build src/cmd/tinyv/tinyv.v` fails
+- **Root Cause:** Multiple undefined references and type issues
+- **Impact:** Entire project is non-functional
 
-## 架构完成状态
+### 2. Module Path Issues
+- **Status:** ❌ Windows path separator incompatibility
+- **Details:** Forward slashes in module imports may not work correctly on Windows
+- **Location:** Various `.v` files with import statements
 
-### ✅ 已完成的核心模块
+## Parser Infrastructure Issues
+### 3. Missing AST Node Implementations
+- **Status:** ❌ Major issue - `FnDecl` is empty stub
+- **Location:** `ast/ast.v` line 75-78
+- **Details:** Function declarations don't populate AST fields
+- **Impact:** Cannot represent function definitions properly
+- **Priority:** High
 
-#### 1. 前端（Frontend）
-- **词法分析器** (`src/tinyv/scanner/`) - 基本完整
-  - 支持 V 语言所有基本 token 类型
-  - 字符串插值处理（部分实现）
-  - 数值解析（基本支持，需改进）
+### 4. Expression Parsing Gaps
+- **Status:** ❌ Significant gaps in expression types
+- **Location:** `parser/parser.v` expression matching blocks
+- **Details:**
+  - Missing call expression parsing (`f()`)
+  - Incomplete selector expression handling
+  - No slice expression support (`a[1..2]`)
+  - Type assertions/casts are stub implementations
+  - Missing `or` block handling
+- **Impact:** Cannot parse significant portions of V language
+- **Priority:** High
 
-- **语法分析器** (`src/tinyv/parser/`) - 功能较完整
-  - 表达式解析器功能完整
-  - 语句解析器支持大部分 V 语法
-  - 类型解析器基本完整
-  - 属性和泛型解析支持
+### 5. Pratt Parser Implementation Problems
+- **Status:** ⚠️ Incomplete implementation
+- **Location:** `parser/parser.v` expression parsing section
+- **Details:**
+  - Binding power comparison uses incorrect enum ordering
+  - Inconsistent match block patterns for sum types
+  - Mixed parsing approaches causing confusion
+- **Impact:** Expression precedence may not work correctly
+- **Priority:** Medium
 
-- **AST 定义** (`src/tinyv/ast/`) - 结构完整
-  - 完整的 AST 节点定义
-  - 支持 V 语言所有主要语法构造
+### 6. Option Type Handling
+- **Status:** ❌ Incorrect unwrapping syntax
+- **Location:** `parser/parser.v` multiple locations
+- **Details:** Using `.unwrap()` instead of proper Option unwrapping
+- **Impact:** Compilation failures on Option usage
+- **Priority:** High
 
-#### 2. 中端（Middle-end）
-- **类型检查器** (`src/tinyv/types/`) - 基本框架完整
-  - 基本类型系统实现
-  - 作用域管理
-  - 方法和函数类型检查
-  - 泛型类型处理（基本支持）
+## Scanner and Token Issues
+### 7. Token Definition Completeness
+- **Status:** ⚠️ Partial implementation
+- **Location:** `token/token.v` and `scanner/scanner.v`
+- **Details:**
+  - Many tokens are commented out (e.g., `@` symbol)
+  - Raw strings implemented but may need testing
+  - String interpolation parsing is complex but functional
+- **Impact:** Limited language feature support
+- **Priority:** Medium
 
-#### 3. 后端（Backend）
-- **V 代码生成器** (`src/tinyv/gen/v/`) - 测试用途，功能完整
-  - 从 AST 重新生成 V 代码
-  - 用于验证解析器正确性
+### 8. Binding Power System
+- **Status:** ❌ May be incorrectly implemented
+- **Location:** `token/` module
+- **Details:** Precedence and associativity rules need verification
+- **Impact:** Parser behavior may be undefined
+- **Priority:** Medium
 
-#### 4. 基础设施
-- **错误处理** (`src/tinyv/errors/`) - 基本完成
-- **配置管理** (`src/tinyv/pref/`) - 完整
-- **令牌定义** (`src/tinyv/token/`) - 完整
-- **构建管理** (`src/tinyv/builder/`) - 基本完成，支持并行处理
+## AST Design Issues
+### 9. Incomplete Node Definitions
+- **Status:** ❌ Multiple AST structs have missing fields
+- **Location:** `ast/ast.v`
+- **Details:**
+  - `Cast` node missing type field
+  - `Index` node incomplete
+  - `Assign` node needs proper field population
+  - Various declaration nodes lack essential fields
+- **Impact:** Cannot represent complete V language constructs
+- **Priority:** High
 
----
+### 10. For Loop Implementation
+- **Status:** ❌ Empty stub implementation
+- **Location:** `ast/ast.v` line 85-88
+- **Details:** For statement node is completely empty
+- **Impact:** Cannot represent for loops in AST
+- **Priority:** High
 
-## 🚧 主要未完成功能
+### 11. Duplicate StructFieldExpr
+- **Status:** ❌ Duplicate definition
+- **Location:** `ast/ast.v` lines 198-202
+- **Details:** `StructFieldExpr` is defined twice
+- **Impact:** Compilation error
+- **Priority:** High
 
-### 1. SSA 中间表示 (高优先级)
-**位置**: `src/tinyv/ir/ssa/`
-**状态**: 框架搭建中，大部分功能未实现
+## Type System Issues
+### 12. Type Checker Implementation
+- **Status:** ❌ Not implemented
+- **Location:** `src/tinyv/types/`
+- **Details:** Type checking modules exist but are not integrated
+- **Impact:** No semantic analysis performed
+- **Priority:** Medium
 
-**已有内容**:
-- SSA 基础结构定义（基本块、指令、值）
-- 理论参考文档齐全（6篇学术论文）
-- 部分算法框架代码
+### 13. Module Loading
+- **Status:** ⚠️ Basic implementation
+- **Location:** `src/tinyv/types/module.v`
+- **Details:** Module resolution may not handle all cases
+- **Impact:** Import resolution issues
+- **Priority:** Medium
 
-**缺失功能**:
-- φ 节点插入算法
-- 控制流图构建
-- SSA 构造的完整实现
-- 优化 Pass 接口
-- 寄存器分配
-- 死代码消除
+## Code Generation Issues
+### 14. Backend Implementation
+- **Status:** ❌ Not implemented
+- **Location:** `src/tinyv/codegen/`
+- **Details:** Various backends exist but no integration
+- **Impact:** Cannot generate output code
+- **Priority:** Medium
 
-**影响**: 阻碍了后端优化和机器代码生成
+### 15. SSA IR Integration
+- **Status:** ⚠️ Partial implementation
+- **Location:** `src/tinyv/ir/ssa/`
+- **Details:** SSA infrastructure exists but not connected to main flow
+- **Impact:** Cannot perform IR-level optimizations
+- **Priority:** Low
 
-### 2. 机器代码生成后端 (高优先级)
-**状态**: 完全缺失
+## Build and Configuration Issues
+### 16. Main Entry Point Problems
+- **Status:** ❌ Hard-coded file paths
+- **Location:** `main.v` line 16
+- **Details:** `file := 'test.v'` - hardcoded for development
+- **Impact:** Cannot process different input files
+- **Priority:** Medium
 
-**计划支持的目标**:
-- x64 机器代码生成
-- 汇编代码输出
-- 目标文件生成
-- 链接器集成
+### 17. Error Handling
+- **Status:** ❌ Uses panic extensively
+- **Location:** Throughout codebase
+- **Details:** Parser uses `panic()` for syntax errors instead of proper error types
+- **Impact:** Poor error messages and recovery
+- **Priority:** Medium
 
-**依赖**: 需要先完成 SSA IR 实现
+## Test Coverage Issues
+### 18. Unit Test Absence
+- **Status:** ❌ No unit tests exist
+- **Location:** Project lacks test/ directories for individual modules
+- **Details:** Only integration test in `test/syntax.v`
+- **Impact:** Cannot verify individual component functionality
+- **Priority:** Medium
 
-### 3. 优化过程 (中优先级)
-**状态**: 未开始
+### 19. Test File Organization
+- **Status:** ⚠️ Single large test file
+- **Location:** `test/syntax.v`
+- **Details:** All syntax tests in one 664-line file (hard to maintain)
+- **Impact:** Difficult to debug specific syntax features
+- **Priority:** Low
 
-**计划的优化**:
-- 常量折叠（SSA 构造时部分支持）
-- 公共子表达式消除
-- 算术简化
-- 复制传播
-- 无用代码消除
+## Architecture Issues
+### 20. Parallel Processing
+- **Status:** ⚠️ Implemented but untested
+- **Location:** `src/tinyv/builder/`
+- **Details:** Parallel parsing exists but may not be stable
+- **Impact:** Potential race conditions
+- **Priority:** Low
 
----
+### 21. Performance Considerations
+- **Status:** ⚠️ Not optimized
+- **Location:** Throughout codebase
+- **Details:** Uses basic algorithms without optimization
+- **Impact:** Poor performance on large files
+- **Priority:** Low
 
-## 📝 具体 TODO 事项分析
+## Documentation Issues
+### 22. Code Comments
+- **Status:** ⚠️ Basic documentation
+- **Location:** Throughout codebase
+- **Details:** Some functions lack documentation, TODO comments not consistent
+- **Impact:** Difficult for new contributors
+- **Priority:** Low
 
-根据代码中的 TODO 注释，共发现 **约 180 个待办事项**，主要分布在：
+### 23. README.md Outdated
+- **Status:** ⚠️ May need updates
+- **Location:** `README.md`
+- **Details:** May not reflect current project state
+- **Impact:** Confusing for new users
+- **Priority:** Low
 
-### 类型检查器 (`src/tinyv/types/checker.v`) - 87 个 TODO
-**主要缺失**:
-- 完整的泛型类型支持
-- 编译时表达式求值
-- 接口方法检查
-- 更好的错误消息
-- 安全性检查改进
-- 多重返回值处理
+## Priority Summary
+- **Critical (High priority - fix immediately):**
+  - AST node completion (`FnDecl`, `For`, duplicate structs)
+  - Option type fixes
+  - Compilation errors on Windows
+  - Expression parsing gaps
 
-### 语法解析器 (`src/tinyv/parser/parser.v`) - 45 个 TODO
-**主要缺失**:
-- 脚本模式支持
-- 闭包捕获语法改进
-- 更好的错误恢复
-- 属性解析完善
-- 泛型语法边界情况
-- 配置语法（已过时，计划替换为映射）
+- **Major (Medium priority - fix soon):**
+  - Type checker implementation
+  - Unit test coverage
+  - Error handling improvements
+  - Token completeness
 
-### AST 定义 (`src/tinyv/ast/ast.v`) - 12 个 TODO
-**主要缺失**:
-- 部分表达式的位置信息
-- 字符串表示方法
-- 节点访问者模式
-- AST 变换工具
+- **Minor (Low priority - improve later):**
+  - Performance optimizations
+  - Documentation improvements
+  - Test organization
+  - Backend integration
 
-### 词法分析器 (`src/tinyv/scanner/scanner.v`) - 8 个 TODO
-**主要缺失**:
-- 改进的数值解析（下划线分隔符）
-- 完整的小数和科学记数法支持
-- 原始字符串处理改进
-
----
-
-## 🎯 优先级排序
-
-### 🔴 高优先级（阻塞性问题）
-1. **完成 SSA IR 实现**
-   - 实现基本块和控制流图构建
-   - 实现 φ 节点插入算法
-   - 添加基本的 SSA 构造功能
-
-2. **开发机器代码生成后端**
-   - x64 汇编代码生成
-   - 基本的寄存器分配
-   - 系统调用接口
-
-3. **完善类型系统**
-   - 泛型类型实例化
-   - 接口类型检查
-   - 编译时常量求值
-
-### 🟡 中优先级（功能完善）
-1. **词法分析器改进**
-   - 数值解析完善
-   - 字符串插值边界情况处理
-
-2. **错误处理改进**
-   - 更好的错误消息
-   - 错误恢复机制
-   - 多错误报告
-
-3. **优化基础设施**
-   - 基本优化 Pass 框架
-   - 性能分析工具
-
-### 🟢 低优先级（质量改进）
-1. **代码质量**
-   - 清理 TODO 注释
-   - 添加更多测试用例
-   - 改进文档
-
-2. **工具链完善**
-   - 调试信息生成
-   - 性能分析工具
-   - 构建系统改进
-
----
-
-## 📈 开发建议
-
-### 即时任务
-1. **专注 SSA IR**: 这是当前最大的阻塞点
-2. **参考已有文献**: 项目已收集了充足的学术参考资料
-3. **渐进式开发**: 先实现基本的 SSA 构造，再添加优化
-
-### 长期规划
-1. **后端开发**: SSA 完成后立即开始机器代码生成
-2. **测试驱动**: 为每个新功能添加相应的测试用例
-3. **性能优化**: 在功能完整后再考虑性能调优
-
-### 技术债务
-- 大量的 TODO 注释需要逐步清理
-- 某些模块的错误处理需要标准化
-- 代码注释和文档需要补充
-
----
-
-## 📊 项目健康度评估
-
-**整体完成度**: **65-70%**
-
-- ✅ **前端**: 85% 完成（词法、语法分析基本完整）
-- 🟡 **中端**: 60% 完成（类型检查功能性完整，SSA 未完成）
-- ❌ **后端**: 20% 完成（仅有测试用的 V 代码生成）
-
-**最大风险**: SSA IR 实现的复杂性可能比预期更高，需要深入理解编译器理论。
-
-**建议的下一步**: 从最简单的 SSA 算法开始实现，使用项目中已引用的第一篇论文作为指导。
+The most critical issue is that the compiler cannot build successfully, making all other features moot until this is resolved.

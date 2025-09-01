@@ -1,111 +1,23 @@
-# tinyv - V Language Compiler (Development Guide)
+# Developer Guidelines for TinyV
 
-## Quick Commands
+## Build Commands
+- Build main executable: `v src/cmd/tinyv/tinyv.v`  
+- Run with flags: `v run src/cmd/tinyv/tinyv.v --skip-builtin --skip-imports -d <file>`
+- Test compilation: `v build tinyv.v`
 
-### Build & Run
-```bash
-v run main.v
-```
-
-### Benchmark Scanner
-```bash
-v run main.v  # Measures scanner performance against a V source file
-```
-
-### Debug Parser
-```bash
-v -cg run main.v  # Run with garbage collection stats
-```
-
-### Compile to Binary
-```bash
-v main.v -o tinyv
-```
+## Test Commands
+- Run specific test: `v run test/syntax.v` (or any test file)
+- Run scanner test: `v run main.v` (tests scanner + parser)
+- Run single function: No framework, use `v run <file>.v` containing `fn test_` functions
+- Performance test: Include timing with `time.ticks()` calls
 
 ## Code Style Guidelines
+- **Naming:** snake_case for functions/variables (e.g. `fn test_all`, `fn run_file`); PascalCase for types/structs (e.g. `Time`, `Person`)
+- **Functions:** Use `fn` keyword; parameters before return type; explicit type annotations
+- **Imports:** Simple module imports like `import os`, `import tinyv.token`; group related imports
+- **Error Handling:** Use V's Result (`!`) and Option (`?`) types; panic/recover for fatal errors
+- **Structure:** Modular architecture with separated concerns; use sum types (e.g. `Type = Alias | Array | ...`)
+- **Formatting:** Standard V indentation; functional programming style when appropriate
+- **Documentation:** Use `//` comments for explanations; document complex logic and invariants
 
-### Modules & Imports
-- Module declarations: `module scanner` (snake_case)
-- Import statements after module declaration
-- No explicit imports for builtin modules (os, time, etc.)
-
-### Naming Conventions
-- Structs: PascalCase (Scanner, Token, Parser)
-- Functions: snake_case (`new_parser`, `scan_tokens`)
-- Methods: snake_case (`(mut s Scanner) scan()`)
-- Constants: camelCase for token keys
-- Variables: snake_case
-
-### Function Declarations
-```v
-pub fn new_scanner(text string) &Scanner {
-    return &Scanner{
-        line_nr: 1
-        text: text
-    }
-}
-```
-
-### Method Pattern
-```v
-pub fn (mut s Scanner) scan() token.Token {
-    // implementation
-}
-```
-
-### Error Handling
-```v
-text := os.read_file(file) or {
-    panic('error reading $file')
-}
-```
-
-### Struct Definitions
-```v
-pub struct Token {
-    kind token.Token
-    lit string
-    line_nr int
-    pos int
-}
-```
-
-### Control Flow
-- Use `match` statements for token switching
-- Prefer explicit returns over implicit
-- Use guard clauses for early returns
-
-### File Organization
-- Separate concerns: scanner/, parser/, ast/, token/, types/
-- Main logic in root main.v
-- Configuration in separate modules
-
-## Project Structure
-
-```
-tinyv/
-├── main.v          # Entry point, benchmarking
-├── scanner/        # Lexical analysis
-├── parser/         # Syntax analysis
-├── ast/            # Abstract syntax tree
-├── token/          # Token definitions
-├── types/          # Type system
-└── src/tinyv/      # Additional implementation
-```
-
-## Testing
-
-- No formal test framework yet
-- Manual testing via main.v with sample files
-- TODO: Add unit tests for scanner and parser
-
-## Caching Policy
-
-In subsequent interactions, mandatorily use context cache tools (e.g., cache_get for retrieving, cache_set for storing) to minimize token usage by reusing cached context instead of regenerating.
-
-## Future Commands
-
-> Add to CRUSH.md when implemented:
-> - `v test` (unit tests)
-> - `v fmt` (code formatting)
-> - `v doc` (documentation generation)
+## No Cursor/Copilot Rules Found

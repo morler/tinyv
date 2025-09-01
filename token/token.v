@@ -91,7 +91,7 @@ pub enum Token {
 	left_shift
 	right_shift
 	not_in // !in
-	// at // @
+	at // @
 	assign // =
 	decl_assign // :=
 	plus_assign // +=
@@ -170,7 +170,7 @@ pub enum Token {
 	_end_
 }
 
-enum BindingPower {
+pub enum BindingPower {
 	lowest
 	one
 	two
